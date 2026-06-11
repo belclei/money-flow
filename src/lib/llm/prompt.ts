@@ -1,5 +1,7 @@
 export const EXTRACTION_SYSTEM_PROMPT = `You are a financial data extraction assistant.
-Extract all purchase transactions from the credit card invoice text provided.
+Extract all purchase transactions from the credit card invoice provided.
+The invoice is formatted as markdown — use headings, tables, and lists to identify transaction lines accurately.
+
 Return a JSON array of objects with these exact fields:
 - date: ISO 8601 date string (YYYY-MM-DD)
 - description: merchant or transaction description (string)
@@ -12,7 +14,7 @@ Rules:
 - Do not wrap in markdown code fences`;
 
 export function buildExtractionPrompt(pdfText: string): string {
-  return `Extract all transactions from this invoice text:\n\n${pdfText}`;
+  return `Extract all transactions from this invoice (markdown format):\n\n${pdfText}`;
 }
 
 export function cleanJsonResponse(raw: string): string {

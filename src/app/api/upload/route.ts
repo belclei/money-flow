@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth/config";
-import { extractPDFText } from "@/lib/pdf/extract";
+import { toMarkdown } from "@/lib/pdf/to-markdown";
 import { getLLMProvider } from "@/lib/llm/factory";
 import { prisma } from "@/lib/db/prisma";
 import { ExtractedTransactionSchema } from "@/lib/validators/transaction";
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const extraction = await extractPDFText(buffer, password);
+  const extraction = await toMarkdown(buffer, password);
 
   if (extraction.status === "password_required") {
     return NextResponse.json({ status: "password_required" }, { status: 200 });
