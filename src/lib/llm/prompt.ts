@@ -4,12 +4,21 @@ The invoice is formatted as markdown — use headings, tables, and lists to iden
 
 Return a JSON array of objects with these exact fields:
 - date: ISO 8601 date string (YYYY-MM-DD)
-- description: merchant or transaction description (string)
-- amount: number, positive for expenses, negative for payments or refunds
-- category: optional string — infer from description (e.g. food, transport, shopping, health, entertainment, utilities, other)
+- description: full merchant/transaction description as shown (string)
+- amount: number — value in the original currency (positive=expense, negative=payment/refund)
+- currency: "BRL" by default; use "USD", "EUR", etc. only when the transaction is clearly in foreign currency
+- amountBRL: number — BRL amount charged if currency != BRL (the converted value shown in the invoice); omit if currency is BRL
+- category: optional — infer from description (e.g. food, transport, shopping, health, entertainment, utilities, other)
+- cardHolder: optional — name of the cardholder if the invoice identifies who made the purchase (e.g. "TITULAR", "ADICIONAL - JOAO"); omit if not identifiable
+- installmentNumber: optional integer — current installment number if this is a parcelado transaction (e.g. 3 from "LOJA 03/12")
+- installmentTotal: optional integer — total installments (e.g. 12 from "LOJA 03/12")
+- installmentDescription: optional string — base description without the installment suffix (e.g. "LOJA" from "LOJA 03/12")
 
 Rules:
-- Ignore total lines, balance due, previous balance, and payment entries
+- Ignore total lines, balance due, previous balance, and payment/credit entries
+- CURRENCY: if description contains "USD", "US$", or a "$" without "R$", use currency="USD"
+- CARDHOLDER: if the invoice groups transactions under a holder name (e.g. "CARTAO ADICIONAL - MARIA"), set cardHolder for each transaction in that block
+- INSTALLMENTS: detect patterns like "03/12", "3/12", "PARCELA 3 DE 12", "3x" — extract the numbers and the clean description
 - Do not include any text outside the JSON array
 - Do not wrap in markdown code fences`;
 

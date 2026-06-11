@@ -29,28 +29,51 @@ model Invoice {
   id           String        @id @default(cuid())
   filename     String
   cardBrand    String?
+  cardHolder   String?
   month        String
   uploadedAt   DateTime      @default(now())
   status       String
   transactions Transaction[]
 }
 
+model Purchase {
+  id               String        @id @default(cuid())
+  description      String
+  purchaseKey      String        @unique
+  totalAmount      Float?
+  installmentCount Int
+  currency         String        @default("BRL")
+  transactions     Transaction[]
+  createdAt        DateTime      @default(now())
+}
+
 model Transaction {
-  id            String   @id @default(cuid())
-  date          DateTime
-  description   String
-  amount        Float
-  category      String?
-  paymentMethod String
-  cardBrand     String?
-  invoiceId     String?
-  invoice       Invoice? @relation(fields: [invoiceId], references: [id])
-  source        String
-  invoiceMonth  String?
-  createdAt     DateTime @default(now())
+  id                    String    @id @default(cuid())
+  date                  DateTime
+  description           String
+  amount                Float
+  currency              String    @default("BRL")
+  amountBRL             Float?
+  category              String?
+  paymentMethod         String
+  cardBrand             String?
+  cardHolder            String?
+  invoiceId             String?
+  invoice               Invoice?  @relation(fields: [invoiceId], references: [id])
+  source                String
+  invoiceMonth          String?
+  installmentNumber     Int?
+  installmentTotal      Int?
+  installmentDescription String?
+  purchaseId            String?
+  purchase              Purchase? @relation(fields: [purchaseId], references: [id])
+  createdAt             DateTime  @default(now())
 
   @@index([date])
   @@index([category])
   @@index([invoiceMonth])
   @@index([paymentMethod])
+  @@index([currency])
+  @@index([cardHolder])
+  @@index([purchaseId])
 }

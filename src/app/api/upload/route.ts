@@ -6,6 +6,7 @@ import { toMarkdown } from "@/lib/pdf/to-markdown";
 import { getLLMProvider } from "@/lib/llm/factory";
 import { prisma } from "@/lib/db/prisma";
 import { ExtractedTransactionSchema } from "@/lib/validators/transaction";
+import type { ExtractedTransaction } from "@/lib/llm/types";
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
 
@@ -16,6 +17,36 @@ function isPDF(buffer: Buffer): boolean {
     buffer[2] === 0x44 &&
     buffer[3] === 0x46
   );
+}
+
+function buildPurchaseKey(t: ExtractedTransaction): string {
+  const base = (t.installmentDescription ?? t.description)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "");
+  return `${base}_${t.installmentTotal}`;
+}
+
+async function resolvePurchaseId(t: ExtractedTransaction): Promise<string> {
+  const key = buildPurchaseKey(t);
+  const existing = await prisma.purchase.findUnique({
+    where: { purchaseKey: key },
+  });
+  if (existing) return existing.id;
+
+  const created = await prisma.purchase.create({
+    data: {
+      purchaseKey: key,
+      description: t.installmentDescription ?? t.description,
+      installmentCount: t.installmentTotal!,
+      totalAmount:
+        t.installmentTotal != null ? t.amount * t.installmentTotal : null,
+      currency: t.currency ?? "BRL",
+    },
+  });
+  return created.id;
 }
 
 export async function POST(req: NextRequest) {
@@ -34,6 +65,7 @@ export async function POST(req: NextRequest) {
   const file = formData.get("file") as File | null;
   const password = (formData.get("password") as string | null) ?? undefined;
   const cardBrand = (formData.get("cardBrand") as string | null) ?? undefined;
+  const cardHolder = (formData.get("cardHolder") as string | null) ?? undefined;
   const month = (formData.get("month") as string | null) ?? "";
 
   if (!file) {
@@ -92,22 +124,41 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Resolve purchaseId for installment transactions
+  const withPurchaseIds = await Promise.all(
+    parsed.data.map(async (t) => {
+      if (t.installmentTotal != null && t.installmentNumber != null) {
+        const purchaseId = await resolvePurchaseId(t);
+        return { ...t, purchaseId };
+      }
+      return { ...t, purchaseId: undefined };
+    })
+  );
+
   const invoice = await prisma.invoice.create({
     data: {
       filename: file.name,
       cardBrand,
+      cardHolder,
       month,
       status: "processed",
       transactions: {
-        create: parsed.data.map((t) => ({
+        create: withPurchaseIds.map((t) => ({
           date: new Date(t.date),
           description: t.description,
           amount: t.amount,
+          currency: t.currency ?? "BRL",
+          amountBRL: t.amountBRL,
           category: t.category,
           paymentMethod: "credit_card",
           cardBrand,
+          cardHolder: t.cardHolder ?? cardHolder,
           source: "pdf_import",
           invoiceMonth: month,
+          installmentNumber: t.installmentNumber,
+          installmentTotal: t.installmentTotal,
+          installmentDescription: t.installmentDescription,
+          purchaseId: t.purchaseId,
         })),
       },
     },

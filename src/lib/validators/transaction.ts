@@ -4,16 +4,25 @@ export const ExtractedTransactionSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   description: z.string().min(1).max(500),
   amount: z.number().finite(),
+  currency: z.string().default("BRL"),
+  amountBRL: z.number().finite().optional(),
   category: z.string().optional(),
+  cardHolder: z.string().optional(),
+  installmentNumber: z.number().int().positive().optional(),
+  installmentTotal: z.number().int().positive().optional(),
+  installmentDescription: z.string().optional(),
 });
 
 export const ManualTransactionSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   description: z.string().min(1).max(500),
   amount: z.number().finite(),
+  currency: z.string().default("BRL"),
+  amountBRL: z.number().finite().optional(),
   category: z.string().optional(),
   paymentMethod: z.enum(["credit_card", "debit", "pix", "cash", "other"]),
   cardBrand: z.string().optional(),
+  cardHolder: z.string().optional(),
   invoiceMonth: z
     .string()
     .regex(/^\d{4}-\d{2}$/)
@@ -39,4 +48,6 @@ export const TransactionQuerySchema = z.object({
     .optional(),
   category: z.string().optional(),
   paymentMethod: z.string().optional(),
+  currency: z.string().optional(),
+  cardHolder: z.string().optional(),
 });
