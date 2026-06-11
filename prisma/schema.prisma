@@ -1,0 +1,56 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         String   @default("viewer")
+  createdAt    DateTime @default(now())
+}
+
+model Invite {
+  id        String    @id @default(cuid())
+  email     String
+  token     String    @unique
+  role      String    @default("viewer")
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model Invoice {
+  id           String        @id @default(cuid())
+  filename     String
+  cardBrand    String?
+  month        String
+  uploadedAt   DateTime      @default(now())
+  status       String
+  transactions Transaction[]
+}
+
+model Transaction {
+  id            String   @id @default(cuid())
+  date          DateTime
+  description   String
+  amount        Float
+  category      String?
+  paymentMethod String
+  cardBrand     String?
+  invoiceId     String?
+  invoice       Invoice? @relation(fields: [invoiceId], references: [id])
+  source        String
+  invoiceMonth  String?
+  createdAt     DateTime @default(now())
+
+  @@index([date])
+  @@index([category])
+  @@index([invoiceMonth])
+  @@index([paymentMethod])
+}
