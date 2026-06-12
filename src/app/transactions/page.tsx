@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth/config";
@@ -6,6 +7,8 @@ import { prisma } from "@/lib/db/prisma";
 import { TransactionTable } from "@/components/transactions/table";
 import { TransactionFilters } from "@/components/transactions/filters";
 import { Pagination } from "@/components/transactions/pagination";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const LIMIT = 50;
 
@@ -70,6 +73,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Transações</h1>
+
           <p className="text-sm text-muted-foreground mt-1">
             {total} registro{total !== 1 ? "s" : ""}
             {totalBRL > 0 && (
@@ -84,6 +88,14 @@ export default async function TransactionsPage({ searchParams }: Props) {
             )}
           </p>
         </div>
+        {session.user.role === "admin" && (
+          <Link
+            href="/transactions/new"
+            className={cn(buttonVariants({ size: "sm" }))}
+          >
+            + Nova transação
+          </Link>
+        )}
       </div>
 
       <Suspense>
