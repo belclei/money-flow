@@ -11,19 +11,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { ReviewTable, type ReviewTransaction } from "@/components/upload/review-table";
+
+type Meta = { filename: string; cardBrand?: string; cardHolder?: string; month: string };
 
 type UploadState =
   | { status: "idle" }
   | { status: "uploading" }
   | { status: "password_required"; file: File }
+  | { status: "review"; transactions: ReviewTransaction[]; meta: Meta }
+  | { status: "confirming" }
   | { status: "success"; count: number }
   | { status: "error"; message: string };
 
 async function uploadFile(file: File, password?: string) {
-  const formData = new FormData();
-  formData.append("file", file);
-  if (password) formData.append("password", password);
-  return fetch("/api/upload", { method: "POST", body: formData });
+  const fd = new FormData();
+  fd.append("file", file);
+  if (password) fd.append("password", password);
+  return fetch("/api/upload", { method: "POST", body: fd });
 }
 
 export default function UploadPage() {
@@ -35,32 +40,25 @@ export default function UploadPage() {
 
   const handleFile = useCallback(async (file: File) => {
     if (!file.name.toLowerCase().endsWith(".pdf")) {
-      setState({ status: "error", message: "Only PDF files are accepted." });
+      setState({ status: "error", message: "Apenas arquivos PDF são aceitos." });
       return;
     }
     setState({ status: "uploading" });
 
     const res = await uploadFile(file);
+    const data = await res.json().catch(() => ({}));
+
     if (!res.ok && res.status !== 200) {
-      const data = await res.json().catch(() => ({}));
-      setState({ status: "error", message: data.error ?? "Upload failed." });
+      setState({ status: "error", message: data.error ?? "Falha no upload." });
       return;
     }
-
-    const data = await res.json();
 
     if (data.status === "password_required") {
       setState({ status: "password_required", file });
-      return;
-    }
-
-    if (data.status === "ok") {
-      setState({
-        status: "success",
-        count: data.invoice?.transactions?.length ?? 0,
-      });
+    } else if (data.status === "preview") {
+      setState({ status: "review", transactions: data.transactions, meta: data.meta });
     } else {
-      setState({ status: "error", message: data.error ?? "Unknown error." });
+      setState({ status: "error", message: data.error ?? "Erro desconhecido." });
     }
   }, []);
 
@@ -76,31 +74,38 @@ export default function UploadPage() {
 
       if (data.status === "password_required") {
         setState({ status: "password_required", file: state.file });
-        setPasswordError("Incorrect password. Please try again.");
+        setPasswordError("Senha incorreta. Tente novamente.");
         return;
       }
-
-      if (data.status === "ok") {
+      if (data.status === "preview") {
         setPassword("");
-        setState({
-          status: "success",
-          count: data.invoice?.transactions?.length ?? 0,
-        });
+        setState({ status: "review", transactions: data.transactions, meta: data.meta });
       } else {
-        setState({ status: "error", message: data.error ?? "Upload failed." });
+        setState({ status: "error", message: data.error ?? "Falha no upload." });
       }
     },
     [state, password]
   );
 
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setDragging(false);
-      const file = e.dataTransfer.files[0];
-      if (file) handleFile(file);
+  const handleConfirm = useCallback(
+    async (transactions: ReviewTransaction[]) => {
+      if (state.status !== "review") return;
+      setState({ status: "confirming" });
+
+      const res = await fetch("/api/upload/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transactions, meta: state.meta }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (data.status === "ok") {
+        setState({ status: "success", count: data.invoice?.transactions?.length ?? 0 });
+      } else {
+        setState({ status: "error", message: data.error ?? "Falha ao salvar." });
+      }
     },
-    [handleFile]
+    [state]
   );
 
   const reset = () => {
@@ -110,77 +115,89 @@ export default function UploadPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  return (
-    <main className="container mx-auto max-w-2xl p-6">
-      <h1 className="mb-6 text-2xl font-semibold">Upload Invoice</h1>
+  // Review screen takes full width
+  if (state.status === "review" || state.status === "confirming") {
+    return (
+      <main className="container mx-auto max-w-5xl p-6 space-y-4">
+        <div>
+          <h1 className="text-2xl font-semibold">Revisar importação</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Confira e edite as transações antes de confirmar.
+          </p>
+        </div>
+        <ReviewTable
+          initial={state.status === "review" ? state.transactions : []}
+          onConfirm={handleConfirm}
+          onCancel={reset}
+          loading={state.status === "confirming"}
+        />
+      </main>
+    );
+  }
 
-      {/* Drop zone */}
+  return (
+    <main className="container mx-auto max-w-2xl p-6 space-y-6">
+      <h1 className="text-2xl font-semibold">Importar fatura</h1>
+
       <div
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
-        onDrop={handleDrop}
+        onDrop={(e) => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
         onClick={() => fileInputRef.current?.click()}
         className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-12 transition-colors ${
-          dragging
-            ? "border-primary bg-primary/5"
-            : "border-muted-foreground/30 hover:border-primary/60"
+          dragging ? "border-primary bg-primary/5" : "border-muted-foreground/30 hover:border-primary/60"
         }`}
       >
         <p className="text-sm text-muted-foreground">
-          Drag & drop a PDF here, or click to select
+          Arraste o PDF aqui, ou clique para selecionar
         </p>
         <input
           ref={fileInputRef}
           type="file"
           accept="application/pdf"
           className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) handleFile(file);
-          }}
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
         />
       </div>
 
-      {/* States */}
       {state.status === "uploading" && (
-        <div className="mt-6 space-y-2">
-          <p className="text-sm text-muted-foreground">Processing…</p>
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">Extraindo e processando…</p>
           <Progress value={null} className="h-1" />
         </div>
       )}
 
       {state.status === "success" && (
-        <div className="mt-6 rounded-lg border border-green-200 bg-green-50 p-4">
+        <div className="rounded-lg border border-green-200 bg-green-50 p-4">
           <p className="text-sm text-green-800">
-            Done! {state.count} transaction{state.count !== 1 ? "s" : ""} imported.
+            {state.count} transaç{state.count !== 1 ? "ões importadas" : "ão importada"} com sucesso.
           </p>
           <Button variant="outline" size="sm" className="mt-2" onClick={reset}>
-            Upload another
+            Importar outra
           </Button>
         </div>
       )}
 
       {state.status === "error" && (
-        <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-4">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
           <p className="text-sm text-red-800">{state.message}</p>
           <Button variant="outline" size="sm" className="mt-2" onClick={reset}>
-            Try again
+            Tentar novamente
           </Button>
         </div>
       )}
 
-      {/* Password dialog */}
       <Dialog
         open={state.status === "password_required"}
         onOpenChange={(open) => { if (!open) reset(); }}
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>PDF is password protected</DialogTitle>
+            <DialogTitle>PDF protegido por senha</DialogTitle>
           </DialogHeader>
           <form onSubmit={handlePasswordSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="pdf-password">Password</Label>
+              <Label htmlFor="pdf-password">Senha</Label>
               <Input
                 id="pdf-password"
                 type="password"
@@ -189,16 +206,10 @@ export default function UploadPage() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-            {passwordError && (
-              <p className="text-sm text-red-500">{passwordError}</p>
-            )}
+            {passwordError && <p className="text-sm text-red-500">{passwordError}</p>}
             <div className="flex gap-2">
-              <Button type="submit" disabled={!password}>
-                Unlock and import
-              </Button>
-              <Button type="button" variant="outline" onClick={reset}>
-                Cancel
-              </Button>
+              <Button type="submit" disabled={!password}>Desbloquear e importar</Button>
+              <Button type="button" variant="outline" onClick={reset}>Cancelar</Button>
             </div>
           </form>
         </DialogContent>
