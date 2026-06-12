@@ -7,7 +7,7 @@ import { TransactionTable } from "@/components/transactions/table";
 import { TransactionFilters } from "@/components/transactions/filters";
 import { Pagination } from "@/components/transactions/pagination";
 
-const LIMIT = 30;
+const LIMIT = 50;
 
 interface Props {
   searchParams: Promise<{
@@ -16,6 +16,8 @@ interface Props {
     category?: string;
     currency?: string;
     cardHolder?: string;
+    cardBrand?: string;
+    groupBy?: "bank" | "holder";
   }>;
 }
 
@@ -25,17 +27,33 @@ export default async function TransactionsPage({ searchParams }: Props) {
 
   const params = await searchParams;
   const page = Math.max(1, Number(params.page ?? 1));
+  const groupBy = params.groupBy;
+
   const where = {
     ...(params.month && { invoiceMonth: params.month }),
-    ...(params.category && params.category !== "all" && { category: params.category }),
-    ...(params.currency && params.currency !== "all" && { currency: params.currency }),
-    ...(params.cardHolder && { cardHolder: { contains: params.cardHolder, mode: "insensitive" as const } }),
+    ...(params.category &&
+      params.category !== "all" && { category: params.category }),
+    ...(params.currency &&
+      params.currency !== "all" && { currency: params.currency }),
+    ...(params.cardHolder && {
+      cardHolder: { contains: params.cardHolder, mode: "insensitive" as const },
+    }),
+    ...(params.cardBrand && {
+      cardBrand: { contains: params.cardBrand, mode: "insensitive" as const },
+    }),
   };
+
+  const orderBy =
+    groupBy === "bank"
+      ? [{ cardBrand: "asc" as const }, { date: "desc" as const }]
+      : groupBy === "holder"
+      ? [{ cardHolder: "asc" as const }, { date: "desc" as const }]
+      : [{ date: "desc" as const }];
 
   const [transactions, total] = await prisma.$transaction([
     prisma.transaction.findMany({
       where,
-      orderBy: { date: "desc" },
+      orderBy,
       skip: (page - 1) * LIMIT,
       take: LIMIT,
       include: { purchase: true },
@@ -43,7 +61,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
     prisma.transaction.count({ where }),
   ]);
 
-  const totalExpenses = transactions
+  const totalBRL = transactions
     .filter((t) => t.amount > 0 && t.currency === "BRL")
     .reduce((sum, t) => sum + t.amount, 0);
 
@@ -54,13 +72,13 @@ export default async function TransactionsPage({ searchParams }: Props) {
           <h1 className="text-2xl font-semibold">Transações</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {total} registro{total !== 1 ? "s" : ""}
-            {totalExpenses > 0 && (
+            {totalBRL > 0 && (
               <>
                 {" · "}
                 {new Intl.NumberFormat("pt-BR", {
                   style: "currency",
                   currency: "BRL",
-                }).format(totalExpenses)}{" "}
+                }).format(totalBRL)}{" "}
                 nesta página
               </>
             )}
@@ -72,7 +90,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
         <TransactionFilters />
       </Suspense>
 
-      <TransactionTable transactions={transactions} />
+      <TransactionTable transactions={transactions} groupBy={groupBy} />
 
       <Suspense>
         <Pagination page={page} total={total} limit={LIMIT} />

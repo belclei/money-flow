@@ -19,20 +19,28 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid query params" }, { status: 400 });
   }
 
-  const { page, limit, month, category, paymentMethod, currency, cardHolder } =
+  const { page, limit, month, category, paymentMethod, currency, cardHolder, cardBrand, groupBy } =
     query.data;
   const where = {
     ...(month && { invoiceMonth: month }),
     ...(category && { category }),
     ...(paymentMethod && { paymentMethod }),
     ...(currency && { currency }),
-    ...(cardHolder && { cardHolder }),
+    ...(cardHolder && { cardHolder: { contains: cardHolder, mode: "insensitive" as const } }),
+    ...(cardBrand && { cardBrand: { contains: cardBrand, mode: "insensitive" as const } }),
   };
+
+  const orderBy =
+    groupBy === "bank"
+      ? [{ cardBrand: "asc" as const }, { date: "desc" as const }]
+      : groupBy === "holder"
+      ? [{ cardHolder: "asc" as const }, { date: "desc" as const }]
+      : [{ date: "desc" as const }];
 
   const [transactions, total] = await prisma.$transaction([
     prisma.transaction.findMany({
       where,
-      orderBy: { date: "desc" },
+      orderBy,
       skip: (page - 1) * limit,
       take: limit,
       include: { purchase: true },

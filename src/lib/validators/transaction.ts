@@ -50,4 +50,6 @@ export const TransactionQuerySchema = z.object({
   paymentMethod: z.string().optional(),
   currency: z.string().optional(),
   cardHolder: z.string().optional(),
+  cardBrand: z.string().optional(),
+  groupBy: z.enum(["bank", "holder"]).optional(),
 });
