@@ -29,7 +29,10 @@ function buildPurchaseKey(t: ExtractedTransaction): string {
   return `${base}_${t.installmentTotal}`;
 }
 
-async function resolvePurchaseId(t: ExtractedTransaction): Promise<string> {
+async function resolvePurchaseId(
+  t: ExtractedTransaction,
+  cardHolder?: string
+): Promise<string> {
   const key = buildPurchaseKey(t);
   const existing = await prisma.purchase.findUnique({
     where: { purchaseKey: key },
@@ -44,6 +47,7 @@ async function resolvePurchaseId(t: ExtractedTransaction): Promise<string> {
       totalAmount:
         t.installmentTotal != null ? t.amount * t.installmentTotal : null,
       currency: t.currency ?? "BRL",
+      cardHolder: t.cardHolder ?? cardHolder ?? null,
     },
   });
   return created.id;
@@ -128,7 +132,7 @@ export async function POST(req: NextRequest) {
   const withPurchaseIds = await Promise.all(
     parsed.data.map(async (t) => {
       if (t.installmentTotal != null && t.installmentNumber != null) {
-        const purchaseId = await resolvePurchaseId(t);
+        const purchaseId = await resolvePurchaseId(t, cardHolder);
         return { ...t, purchaseId };
       }
       return { ...t, purchaseId: undefined };
@@ -156,8 +160,6 @@ export async function POST(req: NextRequest) {
           source: "pdf_import",
           invoiceMonth: month,
           installmentNumber: t.installmentNumber,
-          installmentTotal: t.installmentTotal,
-          installmentDescription: t.installmentDescription,
           purchaseId: t.purchaseId,
         })),
       },

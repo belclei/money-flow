@@ -43,31 +43,32 @@ model Purchase {
   totalAmount      Float?
   installmentCount Int
   currency         String        @default("BRL")
+  cardHolder       String?
   transactions     Transaction[]
   createdAt        DateTime      @default(now())
+
+  @@index([cardHolder])
 }
 
 model Transaction {
-  id                    String    @id @default(cuid())
-  date                  DateTime
-  description           String
-  amount                Float
-  currency              String    @default("BRL")
-  amountBRL             Float?
-  category              String?
-  paymentMethod         String
-  cardBrand             String?
-  cardHolder            String?
-  invoiceId             String?
-  invoice               Invoice?  @relation(fields: [invoiceId], references: [id])
-  source                String
-  invoiceMonth          String?
-  installmentNumber     Int?
-  installmentTotal      Int?
-  installmentDescription String?
-  purchaseId            String?
-  purchase              Purchase? @relation(fields: [purchaseId], references: [id])
-  createdAt             DateTime  @default(now())
+  id                String    @id @default(cuid())
+  date              DateTime
+  description       String
+  amount            Float
+  currency          String    @default("BRL")
+  amountBRL         Float?
+  category          String?
+  paymentMethod     String
+  cardBrand         String?
+  cardHolder        String?
+  invoiceId         String?
+  invoice           Invoice?  @relation(fields: [invoiceId], references: [id])
+  source            String
+  invoiceMonth      String?
+  installmentNumber Int?
+  purchaseId        String?
+  purchase          Purchase? @relation(fields: [purchaseId], references: [id])
+  createdAt         DateTime  @default(now())
 
   @@index([date])
   @@index([category])

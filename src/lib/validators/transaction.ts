@@ -9,8 +9,8 @@ export const ExtractedTransactionSchema = z.object({
   category: z.string().optional(),
   cardHolder: z.string().optional(),
   installmentNumber: z.number().int().positive().optional(),
-  installmentTotal: z.number().int().positive().optional(),
-  installmentDescription: z.string().optional(),
+  installmentTotal: z.number().int().positive().optional(),    // used to create Purchase, not stored on Transaction
+  installmentDescription: z.string().optional(),              // used to compute purchaseKey, not stored on Transaction
 });
 
 export const ManualTransactionSchema = z.object({
