@@ -1,3 +1,4 @@
+import React from "react";
 import {
   Table,
   TableBody,
@@ -98,7 +99,7 @@ export function TransactionTable({
         </TableHeader>
         <TableBody>
           {groups.map((group) => (
-            <>
+            <React.Fragment key={group.key}>
               {groupBy && (
                 <TableRow key={`header-${group.key}`} className="bg-muted/50 hover:bg-muted/50">
                   <TableCell colSpan={4} className="py-2">
@@ -180,7 +181,7 @@ export function TransactionTable({
                   </TableRow>
                 );
               })}
-            </>
+            </React.Fragment>
           ))}
         </TableBody>
       </Table>
