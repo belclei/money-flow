@@ -53,7 +53,9 @@ export default function UploadPage() {
       return;
     }
 
-    if (data.status === "password_required") {
+    if (res.status === 409 || data.status === "duplicate") {
+      setState({ status: "error", message: "Esta fatura já foi importada anteriormente." });
+    } else if (data.status === "password_required") {
       setState({ status: "password_required", file });
     } else if (data.status === "preview") {
       setState({ status: "review", transactions: data.transactions, meta: data.meta });

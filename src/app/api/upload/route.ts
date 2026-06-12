@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { z } from "zod";
+import { createHash } from "crypto";
 import { authOptions } from "@/lib/auth/config";
 import { toMarkdown } from "@/lib/pdf/to-markdown";
 import { getLLMProvider } from "@/lib/llm/factory";
+import { prisma } from "@/lib/db/prisma";
 import { ExtractedTransactionSchema } from "@/lib/validators/transaction";
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024;
@@ -46,6 +48,16 @@ export async function POST(req: NextRequest) {
   if (!isPDF(buffer))
     return NextResponse.json({ error: "File is not a valid PDF" }, { status: 415 });
 
+  // Deduplication check
+  const contentHash = createHash("sha256").update(buffer).digest("hex");
+  const existing = await prisma.invoice.findUnique({ where: { contentHash } });
+  if (existing) {
+    return NextResponse.json(
+      { status: "duplicate", invoiceId: existing.id },
+      { status: 409 }
+    );
+  }
+
   const extraction = await toMarkdown(buffer, password);
 
   if (extraction.status === "password_required")
@@ -72,10 +84,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Return preview — caller must confirm via /api/upload/confirm
   return NextResponse.json({
     status: "preview",
     transactions: parsed.data,
-    meta: { filename: file.name, cardBrand, cardHolder, month },
+    meta: { filename: file.name, cardBrand, cardHolder, month, contentHash },
   });
 }
