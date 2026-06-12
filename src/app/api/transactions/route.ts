@@ -19,11 +19,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid query params" }, { status: 400 });
   }
 
-  const { page, limit, month, category, paymentMethod } = query.data;
+  const { page, limit, month, category, paymentMethod, currency, cardHolder } =
+    query.data;
   const where = {
     ...(month && { invoiceMonth: month }),
     ...(category && { category }),
     ...(paymentMethod && { paymentMethod }),
+    ...(currency && { currency }),
+    ...(cardHolder && { cardHolder }),
   };
 
   const [transactions, total] = await prisma.$transaction([
@@ -32,6 +35,7 @@ export async function GET(req: NextRequest) {
       orderBy: { date: "desc" },
       skip: (page - 1) * limit,
       take: limit,
+      include: { purchase: true },
     }),
     prisma.transaction.count({ where }),
   ]);
