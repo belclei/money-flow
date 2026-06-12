@@ -1,10 +1,8 @@
 name: Deploy
-
-  on:
+on:
     push:
       branches: [master]
-
-  jobs:
+jobs:
     deploy:
       runs-on: ubuntu-latest
       steps:
