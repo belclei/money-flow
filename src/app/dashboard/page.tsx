@@ -36,13 +36,24 @@ function last6MonthsFrom(base: string) {
   });
 }
 
+function prevMonth(month: string) {
+  const [y, m] = month.split("-").map(Number);
+  const d = new Date(y, m - 2, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
 async function getDashboardData(selectedMonth: string) {
+  const previousMonth = prevMonth(selectedMonth);
   const months = last6MonthsFrom(selectedMonth);
 
-  const [selectedTxs, monthlyRaw, categoryRaw, bankRaw, holderRaw] =
+  const [selectedTxs, prevTxs, monthlyRaw, categoryRaw, bankRaw, holderRaw] =
     await Promise.all([
       prisma.transaction.findMany({
         where: { invoiceMonth: selectedMonth, amount: { gt: 0 }, currency: "BRL" },
+        select: { amount: true },
+      }),
+      prisma.transaction.findMany({
+        where: { invoiceMonth: previousMonth, amount: { gt: 0 }, currency: "BRL" },
         select: { amount: true },
       }),
       prisma.transaction.groupBy({
@@ -77,6 +88,10 @@ async function getDashboardData(selectedMonth: string) {
   const total = selectedTxs.reduce((s, t) => s + t.amount, 0);
   const count = selectedTxs.length;
   const avg = count > 0 ? total / count : 0;
+  const prevTotal = prevTxs.reduce((s, t) => s + t.amount, 0);
+  const prevCount = prevTxs.length;
+  const totalDelta = prevTotal > 0 ? ((total - prevTotal) / prevTotal) * 100 : null;
+  const countDelta = prevCount > 0 ? count - prevCount : null;
 
   const monthlyMap = new Map(monthlyRaw.map((r) => [r.invoiceMonth, r._sum.amount ?? 0]));
   const monthlyData = months.map((m) => ({
@@ -98,7 +113,7 @@ async function getDashboardData(selectedMonth: string) {
     .filter((r) => r.cardHolder)
     .map((r) => ({ label: r.cardHolder!, total: r._sum.amount ?? 0 }));
 
-  return { total, count, avg, monthlyData, categoryData, bankData, holderData };
+  return { total, count, avg, prevTotal, totalDelta, countDelta, monthlyData, categoryData, bankData, holderData, previousMonth };
 }
 
 interface Props {
@@ -152,6 +167,14 @@ export default async function DashboardPage({ searchParams }: Props) {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-semibold tabular-nums">{formatBRL(data.total)}</p>
+            {data.totalDelta !== null && (
+              <p className={`text-xs mt-1 tabular-nums ${data.totalDelta > 0 ? "text-red-500" : "text-green-600"}`}>
+                {data.totalDelta > 0 ? "▲" : "▼"} {Math.abs(data.totalDelta).toFixed(1)}% vs mês anterior
+              </p>
+            )}
+            {data.prevTotal > 0 && (
+              <p className="text-xs text-muted-foreground">{formatBRL(data.prevTotal)} no mês anterior</p>
+            )}
           </CardContent>
         </Card>
 
@@ -163,6 +186,11 @@ export default async function DashboardPage({ searchParams }: Props) {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-semibold tabular-nums">{data.count}</p>
+            {data.countDelta !== null && data.countDelta !== 0 && (
+              <p className={`text-xs mt-1 ${data.countDelta > 0 ? "text-muted-foreground" : "text-green-600"}`}>
+                {data.countDelta > 0 ? "+" : ""}{data.countDelta} vs mês anterior
+              </p>
+            )}
           </CardContent>
         </Card>
 
