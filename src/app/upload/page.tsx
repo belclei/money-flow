@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { ReviewTable, type ReviewTransaction } from "@/components/upload/review-table";
 
-type Meta = { filename: string; cardBrand?: string; cardHolder?: string; month: string };
+type Meta = { filename: string; cardBrand?: string; cardHolder?: string; month: string; detectedCardBrand?: string };
 
 type UploadState =
   | { status: "idle" }
@@ -123,6 +123,14 @@ export default function UploadPage() {
           <h1 className="text-2xl font-semibold">Revisar importação</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Confira e edite as transações antes de confirmar.
+            {state.status === "review" && state.meta.cardBrand && (
+              <span className="ml-2 font-medium text-foreground">
+                · {state.meta.cardBrand}
+                {state.meta.detectedCardBrand && (
+                  <span className="text-xs text-muted-foreground ml-1">(detectado)</span>
+                )}
+              </span>
+            )}
           </p>
         </div>
         <ReviewTable
