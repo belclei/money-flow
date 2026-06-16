@@ -8,6 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { RowActions } from "./row-actions";
 
 type Purchase = {
   id: string;
@@ -95,6 +96,7 @@ export function TransactionTable({
             <TableHead>Categoria</TableHead>
             {!groupBy && <TableHead>Banco / Portador</TableHead>}
             <TableHead className="text-right">Valor</TableHead>
+            <TableHead className="w-12" />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -120,7 +122,7 @@ export function TransactionTable({
                 const holder = t.cardHolder ?? t.purchase?.cardHolder;
 
                 return (
-                  <TableRow key={t.id}>
+                  <TableRow key={t.id} className="group/row">
                     <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
                       {formatDate(t.date)}
                     </TableCell>
@@ -177,6 +179,10 @@ export function TransactionTable({
                           </span>
                         )}
                       </div>
+                    </TableCell>
+
+                    <TableCell>
+                      <RowActions transaction={t} />
                     </TableCell>
                   </TableRow>
                 );
