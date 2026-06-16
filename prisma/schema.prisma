@@ -28,6 +28,7 @@ model Invite {
 model Invoice {
   id           String        @id @default(cuid())
   filename     String
+  contentHash  String?       @unique
   cardBrand    String?
   cardHolder   String?
   month        String

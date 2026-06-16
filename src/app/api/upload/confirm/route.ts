@@ -13,6 +13,7 @@ const ConfirmSchema = z.object({
     cardBrand: z.string().optional(),
     cardHolder: z.string().optional(),
     month: z.string(),
+    contentHash: z.string().optional(),
   }),
 });
 
@@ -74,6 +75,7 @@ export async function POST(req: NextRequest) {
   const invoice = await prisma.invoice.create({
     data: {
       filename: meta.filename,
+      contentHash: meta.contentHash,
       cardBrand: meta.cardBrand,
       cardHolder: meta.cardHolder,
       month: meta.month,
