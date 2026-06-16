@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createHash } from "crypto";
 import { authOptions } from "@/lib/auth/config";
 import { toMarkdown } from "@/lib/pdf/to-markdown";
+import { detectBank } from "@/lib/pdf/detect-bank";
 import { getLLMProvider } from "@/lib/llm/factory";
 import { prisma } from "@/lib/db/prisma";
 import { ExtractedTransactionSchema } from "@/lib/validators/transaction";
@@ -34,7 +35,6 @@ export async function POST(req: NextRequest) {
 
   const file = formData.get("file") as File | null;
   const password = (formData.get("password") as string | null) ?? undefined;
-  const cardBrand = (formData.get("cardBrand") as string | null) ?? undefined;
   const cardHolder = (formData.get("cardHolder") as string | null) ?? undefined;
   const month = (formData.get("month") as string | null) ?? "";
 
@@ -65,6 +65,11 @@ export async function POST(req: NextRequest) {
   if (extraction.status === "error")
     return NextResponse.json({ error: extraction.message }, { status: 422 });
 
+  // Auto-detect bank from markdown text; allow manual override via form
+  const manualCardBrand = (formData.get("cardBrand") as string | null) ?? undefined;
+  const detectedCardBrand = detectBank(extraction.text);
+  const cardBrand = manualCardBrand || detectedCardBrand;
+
   let rawTransactions: unknown;
   try {
     const llm = await getLLMProvider();
@@ -87,6 +92,6 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     status: "preview",
     transactions: parsed.data,
-    meta: { filename: file.name, cardBrand, cardHolder, month, contentHash },
+    meta: { filename: file.name, cardBrand, cardHolder, month, detectedCardBrand, contentHash },
   });
 }
