@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import {
   Table,
   TableBody,
@@ -131,10 +132,13 @@ export function TransactionTable({
                       <div className="flex flex-col gap-0.5">
                         <span className="text-sm">{t.description}</span>
                         {isInstallment && (
-                          <span className="text-xs text-muted-foreground">
+                          <Link
+                            href={`/purchases/${t.purchase!.id}`}
+                            className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                          >
                             Parcela {t.installmentNumber}/{t.purchase!.installmentCount}
-                            {" · "}{t.purchase!.description}
-                          </span>
+                            {" · "}{t.purchase!.description} ↗
+                          </Link>
                         )}
                       </div>
                     </TableCell>
