@@ -52,10 +52,12 @@ export async function POST(req: NextRequest) {
   const contentHash = createHash("sha256").update(buffer).digest("hex");
   const existing = await prisma.invoice.findUnique({ where: { contentHash } });
   if (existing) {
-    return NextResponse.json(
-      { status: "duplicate", invoiceId: existing.id },
-      { status: 409 }
-    );
+    return NextResponse.json({
+      status: "duplicate_ask",
+      invoiceId: existing.id,
+      filename: existing.filename,
+      uploadedAt: existing.uploadedAt,
+    });
   }
 
   const extraction = await toMarkdown(buffer, password);

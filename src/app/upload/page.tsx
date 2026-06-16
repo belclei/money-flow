@@ -19,6 +19,7 @@ type UploadState =
   | { status: "idle" }
   | { status: "uploading" }
   | { status: "password_required"; file: File }
+  | { status: "duplicate_ask"; file: File; invoiceId: string; filename: string; uploadedAt: string }
   | { status: "review"; transactions: ReviewTransaction[]; meta: Meta }
   | { status: "confirming" }
   | { status: "success"; count: number }
@@ -36,6 +37,7 @@ export default function UploadPage() {
   const [dragging, setDragging] = useState(false);
   const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [replacingFile, setReplacingFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = useCallback(async (file: File) => {
@@ -48,13 +50,19 @@ export default function UploadPage() {
     const res = await uploadFile(file);
     const data = await res.json().catch(() => ({}));
 
-    if (!res.ok && res.status !== 200) {
+    if (!res.ok && res.status !== 200 && data.status !== "duplicate_ask") {
       setState({ status: "error", message: data.error ?? "Falha no upload." });
       return;
     }
 
-    if (res.status === 409 || data.status === "duplicate") {
-      setState({ status: "error", message: "Esta fatura já foi importada anteriormente." });
+    if (data.status === "duplicate_ask") {
+      setState({
+        status: "duplicate_ask",
+        file,
+        invoiceId: data.invoiceId,
+        filename: data.filename,
+        uploadedAt: data.uploadedAt,
+      });
     } else if (data.status === "password_required") {
       setState({ status: "password_required", file });
     } else if (data.status === "preview") {
@@ -62,6 +70,30 @@ export default function UploadPage() {
     } else {
       setState({ status: "error", message: data.error ?? "Erro desconhecido." });
     }
+  }, []);
+
+  const handleReplace = useCallback(async () => {
+    if (state.status !== "duplicate_ask") return;
+
+    // Delete old invoice
+    const deleteRes = await fetch(`/api/upload/replace?invoiceId=${state.invoiceId}`, {
+      method: "DELETE",
+    });
+
+    if (!deleteRes.ok) {
+      setState({ status: "error", message: "Falha ao deletar fatura anterior." });
+      return;
+    }
+
+    // Reprocess the new file
+    setReplacingFile(null);
+    await handleFile(state.file);
+  }, [state, handleFile]);
+
+  const handleKeepExisting = useCallback(() => {
+    setState({ status: "idle" });
+    setReplacingFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }, []);
 
   const handlePasswordSubmit = useCallback(
@@ -77,6 +109,16 @@ export default function UploadPage() {
       if (data.status === "password_required") {
         setState({ status: "password_required", file: state.file });
         setPasswordError("Senha incorreta. Tente novamente.");
+        return;
+      }
+      if (data.status === "duplicate_ask") {
+        setState({
+          status: "duplicate_ask",
+          file: state.file,
+          invoiceId: data.invoiceId,
+          filename: data.filename,
+          uploadedAt: data.uploadedAt,
+        });
         return;
       }
       if (data.status === "preview") {
@@ -114,6 +156,7 @@ export default function UploadPage() {
     setState({ status: "idle" });
     setPassword("");
     setPasswordError(null);
+    setReplacingFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -125,14 +168,6 @@ export default function UploadPage() {
           <h1 className="text-2xl font-semibold">Revisar importação</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Confira e edite as transações antes de confirmar.
-            {state.status === "review" && state.meta.cardBrand && (
-              <span className="ml-2 font-medium text-foreground">
-                · {state.meta.cardBrand}
-                {state.meta.detectedCardBrand && (
-                  <span className="text-xs text-muted-foreground ml-1">(detectado)</span>
-                )}
-              </span>
-            )}
           </p>
         </div>
         <ReviewTable
@@ -222,6 +257,37 @@ export default function UploadPage() {
               <Button type="button" variant="outline" onClick={reset}>Cancelar</Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={state.status === "duplicate_ask"}
+        onOpenChange={(open) => { if (!open) handleKeepExisting(); }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Fatura já importada</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm text-muted-foreground mb-2">Esta fatura já foi importada anteriormente:</p>
+              <p className="text-sm font-medium">{state.status === "duplicate_ask" ? state.filename : "—"}</p>
+              {state.status === "duplicate_ask" && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Importado em {new Date(state.uploadedAt).toLocaleDateString("pt-BR")}
+                </p>
+              )}
+            </div>
+            <p className="text-sm">Deseja substituir os dados anteriores por uma nova extração?</p>
+            <div className="flex gap-2">
+              <Button variant="destructive" onClick={handleReplace}>
+                Sim, substituir
+              </Button>
+              <Button variant="outline" onClick={handleKeepExisting}>
+                Não, manter dados existentes
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </main>

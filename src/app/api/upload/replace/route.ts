@@ -1,0 +1,36 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth/config";
+import { prisma } from "@/lib/db/prisma";
+
+interface Params {
+  searchParams: { invoiceId?: string };
+}
+
+export async function DELETE(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session || session.user.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { searchParams } = new URL(req.url);
+  const invoiceId = searchParams.get("invoiceId");
+
+  if (!invoiceId) {
+    return NextResponse.json({ error: "invoiceId required" }, { status: 400 });
+  }
+
+  try {
+    // Cascade delete: transactions will be deleted via Prisma cascade rules
+    await prisma.invoice.delete({
+      where: { id: invoiceId },
+    });
+
+    return NextResponse.json({ status: "ok", deletedId: invoiceId });
+  } catch (err) {
+    return NextResponse.json(
+      { error: `Failed to delete invoice: ${String(err)}` },
+      { status: 500 }
+    );
+  }
+}
