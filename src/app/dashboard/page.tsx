@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { MonthlyChart } from "@/components/dashboard/monthly-chart";
 import { CategoryChart } from "@/components/dashboard/category-chart";
 import { BreakdownBar } from "@/components/dashboard/breakdown-bar";
+import { MonthSelector } from "@/components/dashboard/month-selector";
 
 function formatBRL(v: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -24,11 +25,10 @@ function currentMonth() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function last6Months() {
+function last6MonthsFrom(base: string) {
+  const [year, month] = base.split("-").map(Number);
   return Array.from({ length: 6 }, (_, i) => {
-    const d = new Date();
-    d.setDate(1);
-    d.setMonth(d.getMonth() - (5 - i));
+    const d = new Date(year, month - 1 - (5 - i), 1);
     return {
       month: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
       label: d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""),
@@ -36,19 +36,15 @@ function last6Months() {
   });
 }
 
-async function getDashboardData() {
-  const thisMonth = currentMonth();
-  const months = last6Months();
+async function getDashboardData(selectedMonth: string) {
+  const months = last6MonthsFrom(selectedMonth);
 
-  const [thisMonthTxs, monthlyRaw, categoryRaw, bankRaw, holderRaw] =
+  const [selectedTxs, monthlyRaw, categoryRaw, bankRaw, holderRaw] =
     await Promise.all([
-      // This month transactions
       prisma.transaction.findMany({
-        where: { invoiceMonth: thisMonth, amount: { gt: 0 }, currency: "BRL" },
+        where: { invoiceMonth: selectedMonth, amount: { gt: 0 }, currency: "BRL" },
         select: { amount: true },
       }),
-
-      // Monthly totals (last 6 months)
       prisma.transaction.groupBy({
         by: ["invoiceMonth"],
         where: {
@@ -58,40 +54,31 @@ async function getDashboardData() {
         },
         _sum: { amount: true },
       }),
-
-      // Category breakdown (this month)
       prisma.transaction.groupBy({
         by: ["category"],
-        where: { invoiceMonth: thisMonth, amount: { gt: 0 }, currency: "BRL" },
+        where: { invoiceMonth: selectedMonth, amount: { gt: 0 }, currency: "BRL" },
         _sum: { amount: true },
         orderBy: { _sum: { amount: "desc" } },
       }),
-
-      // Bank breakdown (this month)
       prisma.transaction.groupBy({
         by: ["cardBrand"],
-        where: { invoiceMonth: thisMonth, amount: { gt: 0 }, currency: "BRL" },
+        where: { invoiceMonth: selectedMonth, amount: { gt: 0 }, currency: "BRL" },
         _sum: { amount: true },
         orderBy: { _sum: { amount: "desc" } },
       }),
-
-      // Cardholder breakdown (this month)
       prisma.transaction.groupBy({
         by: ["cardHolder"],
-        where: { invoiceMonth: thisMonth, amount: { gt: 0 }, currency: "BRL" },
+        where: { invoiceMonth: selectedMonth, amount: { gt: 0 }, currency: "BRL" },
         _sum: { amount: true },
         orderBy: { _sum: { amount: "desc" } },
       }),
     ]);
 
-  const totalThisMonth = thisMonthTxs.reduce((s, t) => s + t.amount, 0);
-  const countThisMonth = thisMonthTxs.length;
-  const avgThisMonth = countThisMonth > 0 ? totalThisMonth / countThisMonth : 0;
+  const total = selectedTxs.reduce((s, t) => s + t.amount, 0);
+  const count = selectedTxs.length;
+  const avg = count > 0 ? total / count : 0;
 
-  // Monthly chart data — fill 0 for months with no data
-  const monthlyMap = new Map(
-    monthlyRaw.map((r) => [r.invoiceMonth, r._sum.amount ?? 0])
-  );
+  const monthlyMap = new Map(monthlyRaw.map((r) => [r.invoiceMonth, r._sum.amount ?? 0]));
   const monthlyData = months.map((m) => ({
     month: m.month,
     label: m.label,
@@ -111,37 +98,41 @@ async function getDashboardData() {
     .filter((r) => r.cardHolder)
     .map((r) => ({ label: r.cardHolder!, total: r._sum.amount ?? 0 }));
 
-  return {
-    totalThisMonth,
-    countThisMonth,
-    avgThisMonth,
-    monthlyData,
-    categoryData,
-    bankData,
-    holderData,
-    thisMonth,
-  };
+  return { total, count, avg, monthlyData, categoryData, bankData, holderData };
 }
 
-export default async function DashboardPage() {
+interface Props {
+  searchParams: Promise<{ month?: string }>;
+}
+
+export default async function DashboardPage({ searchParams }: Props) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/auth/login");
 
-  const data = await getDashboardData();
+  const params = await searchParams;
+  const selectedMonth = params.month ?? currentMonth();
 
-  const thisMonthLabel = new Date().toLocaleDateString("pt-BR", {
-    month: "long",
-    year: "numeric",
-  });
+  const data = await getDashboardData(selectedMonth);
+
+  const selectedMonthLabel = (() => {
+    const [y, m] = selectedMonth.split("-").map(Number);
+    return new Date(y, m - 1, 1).toLocaleDateString("pt-BR", {
+      month: "long",
+      year: "numeric",
+    });
+  })();
 
   return (
     <main className="container mx-auto max-w-5xl p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Dashboard</h1>
-          <p className="text-sm text-muted-foreground capitalize">{thisMonthLabel}</p>
+          <p className="text-sm text-muted-foreground capitalize">{selectedMonthLabel}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap items-center">
+          <Suspense>
+            <MonthSelector selected={selectedMonth} />
+          </Suspense>
           <Link href="/transactions" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
             Transações
           </Link>
@@ -156,13 +147,11 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader className="pb-1">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total este mês
+              Total do mês
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-semibold tabular-nums">
-              {formatBRL(data.totalThisMonth)}
-            </p>
+            <p className="text-2xl font-semibold tabular-nums">{formatBRL(data.total)}</p>
           </CardContent>
         </Card>
 
@@ -173,9 +162,7 @@ export default async function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-semibold tabular-nums">
-              {data.countThisMonth}
-            </p>
+            <p className="text-2xl font-semibold tabular-nums">{data.count}</p>
           </CardContent>
         </Card>
 
@@ -186,9 +173,7 @@ export default async function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-semibold tabular-nums">
-              {formatBRL(data.avgThisMonth)}
-            </p>
+            <p className="text-2xl font-semibold tabular-nums">{formatBRL(data.avg)}</p>
           </CardContent>
         </Card>
       </div>
@@ -231,7 +216,6 @@ export default async function DashboardPage() {
               </CardContent>
             </Card>
           )}
-
           {data.holderData.length > 0 && (
             <Card>
               <CardHeader>
