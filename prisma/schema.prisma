@@ -51,6 +51,56 @@ model Purchase {
   @@index([cardHolder])
 }
 
+model Category {
+  id                    String                 @id @default(cuid())
+  userId                String?                // null = categoria padrão do sistema
+  name                  String
+  kind                  String                 // income | expense | transfer
+  isFixed               Boolean                @default(false)
+  createdAt             DateTime               @default(now())
+  recurringTransactions RecurringTransaction[]
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String                 @id @default(cuid())
+  userId                String
+  name                  String
+  type                  String                 // checking | savings | credit_card | investment | cash
+  institution           String?
+  currentBalance        Float                  @default(0)
+  currency              String                 @default("BRL")
+  creditLimit           Float?
+  closingDay            Int?
+  dueDay                Int?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  recurringTransactions RecurringTransaction[]
+
+  @@index([userId])
+}
+
+model RecurringTransaction {
+  id          String    @id @default(cuid())
+  userId      String
+  accountId   String?
+  account     Account?  @relation(fields: [accountId], references: [id])
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  kind        String    // income | expense
+  description String
+  amount      Float
+  dayOfMonth  Int
+  endDate     DateTime?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([accountId])
+  @@index([categoryId])
+}
+
 model Transaction {
   id                String    @id @default(cuid())
   date              DateTime
