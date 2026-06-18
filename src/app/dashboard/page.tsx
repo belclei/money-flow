@@ -161,11 +161,6 @@ export default async function DashboardPage({ searchParams }: Props) {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-semibold">Dashboard</h1>
         <div className="flex gap-2 flex-wrap items-center">
-          {session.user.email === "belclei@gmail.com" && (
-            <Link href="/convites" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
-              Convites
-            </Link>
-          )}
           <Link href="/accounts" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
             Contas
           </Link>

@@ -8,12 +8,13 @@ datasource db {
 }
 
 model User {
-  id                    String          @id @default(cuid())
-  email                 String          @unique
-  passwordHash          String
-  role                  String          @default("viewer")
-  createdAt             DateTime        @default(now())
-  accountAccesses       AccountAccess[] @relation("AccountAccessGrantee")
+  id                     String          @id @default(cuid())
+  email                  String          @unique
+  name                   String?
+  passwordHash           String
+  role                   String          @default("viewer")
+  createdAt              DateTime        @default(now())
+  accountAccesses        AccountAccess[] @relation("AccountAccessGrantee")
   portadorAliasesGranted PortadorAlias[] @relation("PortadorAliasGrantee")
 }
 
