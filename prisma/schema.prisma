@@ -102,8 +102,7 @@ model Category {
   id                    String                 @id @default(cuid())
   userId                String?
   name                  String
-  kind                  String                 // income | expense | transfer
-  isFixed               Boolean                @default(false)
+  kind                  String                 // income | expense
   createdAt             DateTime               @default(now())
   recurringTransactions RecurringTransaction[]
 

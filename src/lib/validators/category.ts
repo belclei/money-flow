@@ -11,23 +11,22 @@ export const CATEGORY_KIND_LABELS: Record<CategoryKind, string> = {
 export const CategorySchema = z.object({
   name: z.string().min(1).max(100),
   kind: z.enum(CATEGORY_KINDS),
-  isFixed: z.boolean().default(false),
 });
 
 export const PatchCategorySchema = CategorySchema.partial();
 
-export const DEFAULT_CATEGORIES: Array<{ name: string; kind: CategoryKind; isFixed: boolean }> = [
-  { name: "Alimentação", kind: "expense", isFixed: false },
-  { name: "Transporte", kind: "expense", isFixed: false },
-  { name: "Moradia", kind: "expense", isFixed: true },
-  { name: "Saúde", kind: "expense", isFixed: false },
-  { name: "Educação", kind: "expense", isFixed: true },
-  { name: "Lazer", kind: "expense", isFixed: false },
-  { name: "Vestuário", kind: "expense", isFixed: false },
-  { name: "Serviços", kind: "expense", isFixed: true },
-  { name: "Outros", kind: "expense", isFixed: false },
-  { name: "Salário", kind: "income", isFixed: true },
-  { name: "Freelance", kind: "income", isFixed: false },
-  { name: "Rendimentos", kind: "income", isFixed: false },
-  { name: "Outras receitas", kind: "income", isFixed: false },
+export const DEFAULT_CATEGORIES: Array<{ name: string; kind: CategoryKind }> = [
+  { name: "Alimentação", kind: "expense" },
+  { name: "Transporte", kind: "expense" },
+  { name: "Moradia", kind: "expense" },
+  { name: "Saúde", kind: "expense" },
+  { name: "Educação", kind: "expense" },
+  { name: "Lazer", kind: "expense" },
+  { name: "Vestuário", kind: "expense" },
+  { name: "Serviços", kind: "expense" },
+  { name: "Outros", kind: "expense" },
+  { name: "Salário", kind: "income" },
+  { name: "Freelance", kind: "income" },
+  { name: "Rendimentos", kind: "income" },
+  { name: "Outras receitas", kind: "income" },
 ];
