@@ -14,6 +14,7 @@ const ConfirmSchema = z.object({
     cardHolder: z.string().optional(),
     month: z.string(),
     contentHash: z.string().optional(),
+    accountId: z.string().optional(),
   }),
 });
 
@@ -29,6 +30,7 @@ function buildPurchaseKey(t: ExtractedTransaction): string {
 
 async function resolvePurchaseId(
   t: ExtractedTransaction,
+  userId: string,
   cardHolder?: string
 ): Promise<string> {
   const key = buildPurchaseKey(t);
@@ -43,6 +45,7 @@ async function resolvePurchaseId(
       totalAmount: t.amount * t.installmentTotal!,
       currency: t.currency ?? "BRL",
       cardHolder: t.cardHolder ?? cardHolder ?? null,
+      userId,
     },
   });
   return created.id;
@@ -61,11 +64,12 @@ export async function POST(req: NextRequest) {
   }
 
   const { transactions, meta } = parsed.data;
+  const userId = session.user.id;
 
   const withPurchaseIds = await Promise.all(
     transactions.map(async (t) => {
       if (t.installmentTotal != null && t.installmentNumber != null) {
-        const purchaseId = await resolvePurchaseId(t, meta.cardHolder);
+        const purchaseId = await resolvePurchaseId(t, userId, meta.cardHolder);
         return { ...t, purchaseId };
       }
       return { ...t, purchaseId: undefined };
@@ -74,6 +78,8 @@ export async function POST(req: NextRequest) {
 
   const invoice = await prisma.invoice.create({
     data: {
+      userId,
+      accountId: meta.accountId ?? null,
       filename: meta.filename,
       contentHash: meta.contentHash,
       cardBrand: meta.cardBrand,
@@ -82,6 +88,7 @@ export async function POST(req: NextRequest) {
       status: "processed",
       transactions: {
         create: withPurchaseIds.map((t) => ({
+          userId,
           date: new Date(t.date),
           description: t.description,
           amount: t.amount,
@@ -101,5 +108,21 @@ export async function POST(req: NextRequest) {
     include: { transactions: true },
   });
 
-  return NextResponse.json({ status: "ok", invoice }, { status: 201 });
+  // Detect cardHolder names not yet mapped by this owner
+  const cardHolderNames = [
+    ...new Set(
+      invoice.transactions
+        .map((t) => t.cardHolder)
+        .filter((n): n is string => !!n)
+    ),
+  ];
+
+  const existingAliases = await prisma.portadorAlias.findMany({
+    where: { ownerUserId: userId, name: { in: cardHolderNames } },
+    select: { name: true },
+  });
+  const mappedNames = new Set(existingAliases.map((a) => a.name));
+  const unknownCardHolders = cardHolderNames.filter((n) => !mappedNames.has(n));
+
+  return NextResponse.json({ status: "ok", invoice, unknownCardHolders }, { status: 201 });
 }

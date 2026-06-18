@@ -9,6 +9,7 @@ import { TransactionFilters } from "@/components/transactions/filters";
 import { Pagination } from "@/components/transactions/pagination";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { transactionVisibilityWhere } from "@/lib/visibility";
 
 const LIMIT = 50;
 
@@ -32,18 +33,19 @@ export default async function TransactionsPage({ searchParams }: Props) {
   const page = Math.max(1, Number(params.page ?? 1));
   const groupBy = params.groupBy;
 
+  const visibilityWhere = await transactionVisibilityWhere(session.user.id);
+
   const where = {
-    ...(params.month && { invoiceMonth: params.month }),
-    ...(params.category &&
-      params.category !== "all" && { category: params.category }),
-    ...(params.currency &&
-      params.currency !== "all" && { currency: params.currency }),
-    ...(params.cardHolder && {
-      cardHolder: { contains: params.cardHolder, mode: "insensitive" as const },
-    }),
-    ...(params.cardBrand && {
-      cardBrand: { contains: params.cardBrand, mode: "insensitive" as const },
-    }),
+    AND: [
+      visibilityWhere,
+      {
+        ...(params.month && { invoiceMonth: params.month }),
+        ...(params.category && params.category !== "all" && { category: params.category }),
+        ...(params.currency && params.currency !== "all" && { currency: params.currency }),
+        ...(params.cardHolder && { cardHolder: { contains: params.cardHolder, mode: "insensitive" as const } }),
+        ...(params.cardBrand && { cardBrand: { contains: params.cardBrand, mode: "insensitive" as const } }),
+      },
+    ],
   };
 
   const orderBy =

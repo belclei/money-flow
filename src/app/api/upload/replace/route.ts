@@ -20,17 +20,15 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "invoiceId required" }, { status: 400 });
   }
 
-  try {
-    // Cascade delete: transactions will be deleted via Prisma cascade rules
-    await prisma.invoice.delete({
-      where: { id: invoiceId },
-    });
+  const invoice = await prisma.invoice.findUnique({ where: { id: invoiceId } });
+  if (!invoice || invoice.userId !== session.user.id) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 
+  try {
+    await prisma.invoice.delete({ where: { id: invoiceId } });
     return NextResponse.json({ status: "ok", deletedId: invoiceId });
   } catch (err) {
-    return NextResponse.json(
-      { error: `Failed to delete invoice: ${String(err)}` },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: `Failed to delete invoice: ${String(err)}` }, { status: 500 });
   }
 }
