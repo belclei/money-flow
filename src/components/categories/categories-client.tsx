@@ -42,7 +42,6 @@ function CategoryForm({
 }) {
   const [name, setName] = useState(category?.name ?? "");
   const [kind, setKind] = useState<CategoryKind>((category?.kind as CategoryKind) ?? "expense");
-  const [isFixed, setIsFixed] = useState(category?.isFixed ?? false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,7 +56,7 @@ function CategoryForm({
     const res = await fetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, kind, isFixed }),
+      body: JSON.stringify({ name, kind }),
     });
 
     setLoading(false);
@@ -84,36 +83,18 @@ function CategoryForm({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-2">
-          <Label>Tipo</Label>
-          <Select value={kind} onValueChange={(v) => setKind((v ?? "expense") as CategoryKind)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {CATEGORY_KINDS.map((k) => (
-                <SelectItem key={k} value={k}>{CATEGORY_KIND_LABELS[k]}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Natureza</Label>
-          <Select
-            value={isFixed ? "fixed" : "variable"}
-            onValueChange={(v) => setIsFixed(v === "fixed")}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="variable">Variável</SelectItem>
-              <SelectItem value="fixed">Fixa</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="space-y-2">
+        <Label>Tipo</Label>
+        <Select value={kind} onValueChange={(v) => setKind((v ?? "expense") as CategoryKind)}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {CATEGORY_KINDS.map((k) => (
+              <SelectItem key={k} value={k}>{CATEGORY_KIND_LABELS[k]}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {error && <p className="text-sm text-red-500">{error}</p>}
@@ -146,11 +127,6 @@ function CategoryRow({
     <div className="group flex items-center justify-between py-2 px-3 rounded-lg hover:bg-muted/50 transition-colors">
       <div className="flex items-center gap-3 min-w-0">
         <span className="font-medium text-sm truncate">{category.name}</span>
-        {category.isFixed && (
-          <span className="text-xs text-muted-foreground border rounded px-1.5 py-0.5 shrink-0">
-            fixa
-          </span>
-        )}
       </div>
       <div className="flex items-center gap-2 shrink-0">
         <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${KIND_COLORS[kind]}`}>
