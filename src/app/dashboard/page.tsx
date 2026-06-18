@@ -14,6 +14,7 @@ import { MonthSelector } from "@/components/dashboard/month-selector";
 import { calcNetWorth, calcFreeMoney, calcMonthForecast } from "@/lib/calculations/financial";
 import { transactionVisibilityWhere, accountVisibilityWhere } from "@/lib/visibility";
 import { DueDateBanner } from "@/components/dashboard/due-date-banner";
+import { WalletGrid } from "@/components/dashboard/wallet-grid";
 
 function formatBRL(v: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -43,6 +44,28 @@ function prevMonth(month: string) {
   const [y, m] = month.split("-").map(Number);
   const d = new Date(y, m - 2, 1);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+async function getWalletData(userId: string) {
+  const today = new Date().getDate();
+  const startOfToday = new Date(new Date().getFullYear(), new Date().getMonth(), today);
+
+  const [accounts, creditCards, recurrings] = await Promise.all([
+    prisma.account.findMany({ where: { userId }, orderBy: [{ type: "asc" }, { name: "asc" }] }),
+    prisma.creditCard.findMany({ where: { userId }, orderBy: { name: "asc" } }),
+    prisma.recurringTransaction.findMany({
+      where: { userId, isActive: true, kind: "expense", dayOfMonth: { gte: today } },
+    }),
+  ]);
+
+  const accountsWithCommitted = accounts.map((acc) => ({
+    ...acc,
+    committed: recurrings
+      .filter((r) => r.accountId === acc.id && (r.endDate === null || r.endDate >= startOfToday))
+      .reduce((s, r) => s + r.amount, 0),
+  }));
+
+  return { accounts: accountsWithCommitted, creditCards };
 }
 
 async function getFinancialSnapshot(userId: string) {
@@ -151,9 +174,10 @@ export default async function DashboardPage({ searchParams }: Props) {
   const params = await searchParams;
   const selectedMonth = params.month ?? currentMonth();
 
-  const [snapshot, spending] = await Promise.all([
+  const [snapshot, spending, wallet] = await Promise.all([
     getFinancialSnapshot(session.user.id),
     getSpendingData(selectedMonth, session.user.id),
+    getWalletData(session.user.id),
   ]);
 
   const selectedMonthLabel = (() => {
@@ -191,6 +215,9 @@ export default async function DashboardPage({ searchParams }: Props) {
           </Link>
         </div>
       </div>
+
+      {/* ── Wallet grid ── */}
+      <WalletGrid accounts={wallet.accounts} creditCards={wallet.creditCards} />
 
       {/* ── Financial health cards (always current, not month-filtered) ── */}
       <section className="space-y-3">
