@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { getBankConfig } from "@/lib/banks";
+import { getBankConfig, getBankLogoUrls } from "@/lib/banks";
 import { ACCOUNT_TYPE_LABELS } from "@/lib/validators/account";
 import type { Account, CreditCard } from "@/generated/prisma/client";
 
@@ -16,25 +16,31 @@ function formatBRL(v: number) {
 }
 
 // ─── Bank logo ──────────────────────────────────────────────────────────────
+// Cascata: DuckDuckGo → Google gstatic → badge de texto
 
 function BankLogo({
-  logoSvg,
+  domain,
   abbrev,
   accent,
   text,
 }: {
-  logoSvg?: string;
+  domain?: string;
   abbrev: string;
   accent: string;
   text: string;
 }) {
-  if (logoSvg) {
+  const urls = domain ? getBankLogoUrls(domain) : [];
+  const [idx, setIdx] = useState(0);
+
+  const currentUrl = urls[idx];
+
+  if (currentUrl) {
     return (
-      <svg
-        viewBox="0 0 20 20"
-        className="w-10 h-10 rounded"
-        style={{ background: accent }}
-        dangerouslySetInnerHTML={{ __html: logoSvg }}
+      <img
+        src={currentUrl}
+        alt="Logo do banco"
+        className="w-10 h-10 object-contain rounded bg-white p-0.5"
+        onError={() => setIdx((i) => i + 1)}
       />
     );
   }
@@ -82,7 +88,7 @@ function AccountCard({ account }: { account: AccountWithCommitted }) {
           </p>
           <p className="font-semibold text-sm mt-0.5">{account.name}</p>
         </div>
-        <BankLogo logoSvg={bank.logoSvg} abbrev={bank.abbrev} accent={bank.accent} text={bank.text} />
+        <BankLogo domain={bank.domain} abbrev={bank.abbrev} accent={bank.accent} text={bank.text} />
       </div>
 
       {/* Balance — sempre exibido */}
@@ -152,7 +158,7 @@ function CreditCardCard({ card }: { card: CreditCard }) {
           <p className="text-[10px] font-medium opacity-70 uppercase tracking-wider">Cartão de crédito</p>
           <p className="font-semibold text-sm mt-0.5">{card.name}</p>
         </div>
-        <BankLogo logoSvg={bank.logoSvg} abbrev={bank.abbrev} accent={bank.accent} text={bank.text} />
+        <BankLogo domain={bank.domain} abbrev={bank.abbrev} accent={bank.accent} text={bank.text} />
       </div>
 
       {/* Fatura */}
