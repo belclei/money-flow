@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   const password = (formData.get("password") as string | null) ?? undefined;
 
   if (!file) {
-    return NextResponse.json({ error: "No file" }, { status: 400 });
+    return NextResponse.json({ error: "Nenhum arquivo" }, { status: 400 });
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());

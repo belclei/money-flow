@@ -14,7 +14,7 @@ const ConfirmSchema = z.object({
     cardHolder: z.string().optional(),
     month: z.string(),
     contentHash: z.string().optional(),
-    accountId: z.string().optional(),
+    creditCardId: z.string().optional(),
   }),
 });
 
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const parsed = ConfirmSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+    return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
   }
 
   const { transactions, meta } = parsed.data;
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
   const invoice = await prisma.invoice.create({
     data: {
       userId,
-      accountId: meta.accountId ?? null,
+      creditCardId: meta.creditCardId ?? null,
       filename: meta.filename,
       contentHash: meta.contentHash,
       cardBrand: meta.cardBrand,

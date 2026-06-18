@@ -29,7 +29,6 @@ import type { Category } from "@/generated/prisma/client";
 const KIND_COLORS: Record<CategoryKind, string> = {
   income: "bg-green-100 text-green-800",
   expense: "bg-red-100 text-red-800",
-  transfer: "bg-blue-100 text-blue-800",
 };
 
 function CategoryForm({

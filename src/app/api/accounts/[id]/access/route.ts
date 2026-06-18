@@ -25,7 +25,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
   const { id } = await params;
   if (!await requireOwner(id, session.user.id)) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   }
 
   const accesses = await prisma.accountAccess.findMany({
@@ -45,17 +45,17 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   const { id } = await params;
   if (!await requireOwner(id, session.user.id)) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   }
 
   const body = await req.json();
   const parsed = GrantSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input", details: parsed.error.issues }, { status: 400 });
+    return NextResponse.json({ error: "Dados inválidos", details: parsed.error.issues }, { status: 400 });
   }
 
   if (parsed.data.granteeId === session.user.id) {
-    return NextResponse.json({ error: "Cannot grant access to yourself" }, { status: 400 });
+    return NextResponse.json({ error: "Você não pode conceder acesso a si mesmo" }, { status: 400 });
   }
 
   const access = await prisma.accountAccess.upsert({

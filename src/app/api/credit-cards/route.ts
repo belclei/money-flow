@@ -2,18 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
-import { AccountSchema } from "@/lib/validators/account";
+import { CreditCardSchema } from "@/lib/validators/credit-card";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const accounts = await prisma.account.findMany({
+  const cards = await prisma.creditCard.findMany({
     where: { userId: session.user.id },
-    orderBy: [{ type: "asc" }, { name: "asc" }],
+    include: { debitAccount: { select: { id: true, name: true } } },
+    orderBy: { name: "asc" },
   });
 
-  return NextResponse.json({ accounts });
+  return NextResponse.json({ cards });
 }
 
 export async function POST(req: NextRequest) {
@@ -23,14 +24,15 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const parsed = AccountSchema.safeParse(body);
+  const parsed = CreditCardSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Dados inválidos", details: parsed.error.issues }, { status: 400 });
   }
 
-  const account = await prisma.account.create({
+  const card = await prisma.creditCard.create({
     data: { ...parsed.data, userId: session.user.id },
+    include: { debitAccount: { select: { id: true, name: true } } },
   });
 
-  return NextResponse.json(account, { status: 201 });
+  return NextResponse.json(card, { status: 201 });
 }

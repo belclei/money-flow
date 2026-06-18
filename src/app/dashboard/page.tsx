@@ -13,6 +13,7 @@ import { BreakdownBar } from "@/components/dashboard/breakdown-bar";
 import { MonthSelector } from "@/components/dashboard/month-selector";
 import { calcNetWorth, calcFreeMoney, calcMonthForecast } from "@/lib/calculations/financial";
 import { transactionVisibilityWhere, accountVisibilityWhere } from "@/lib/visibility";
+import { DueDateBanner } from "@/components/dashboard/due-date-banner";
 
 function formatBRL(v: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -46,17 +47,24 @@ function prevMonth(month: string) {
 
 async function getFinancialSnapshot(userId: string) {
   const accWhere = await accountVisibilityWhere(userId);
-  const [accounts, recurrings] = await Promise.all([
+  const today = new Date().getDate();
+
+  const [accounts, creditCards, recurrings, dueTodayCards] = await Promise.all([
     prisma.account.findMany({ where: accWhere }),
+    prisma.creditCard.findMany({ where: { userId } }),
     prisma.recurringTransaction.findMany({ where: { userId } }),
+    prisma.creditCard.findMany({
+      where: { userId, dueDay: today, currentBill: { gt: 0 } },
+      include: { debitAccount: { select: { id: true, name: true } } },
+    }),
   ]);
 
-  const netWorth = calcNetWorth(accounts);
-  const freeMoney = calcFreeMoney(accounts, recurrings);
-  const forecast = calcMonthForecast(accounts, recurrings);
-  const hasAccounts = accounts.length > 0;
+  const netWorth = calcNetWorth(accounts, creditCards);
+  const freeMoney = calcFreeMoney(accounts, creditCards, recurrings);
+  const forecast = calcMonthForecast(accounts, creditCards, recurrings);
+  const hasAccounts = accounts.length > 0 || creditCards.length > 0;
 
-  return { netWorth, freeMoney, forecast, hasAccounts };
+  return { netWorth, freeMoney, forecast, hasAccounts, dueTodayCards };
 }
 
 async function getSpendingData(selectedMonth: string, userId: string) {
@@ -153,14 +161,22 @@ export default async function DashboardPage({ searchParams }: Props) {
     return new Date(y, m - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
   })();
 
-  const { freeMoney, forecast, netWorth, hasAccounts } = snapshot;
+  const { freeMoney, forecast, netWorth, hasAccounts, dueTodayCards } = snapshot;
 
   return (
     <main className="container mx-auto max-w-5xl p-6 space-y-8">
+      {/* Due date banner */}
+      {dueTodayCards.length > 0 && (
+        <DueDateBanner cards={dueTodayCards} />
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-semibold">Dashboard</h1>
         <div className="flex gap-2 flex-wrap items-center">
+          <Link href="/cartoes" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+            Cartões
+          </Link>
           <Link href="/accounts" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
             Contas
           </Link>

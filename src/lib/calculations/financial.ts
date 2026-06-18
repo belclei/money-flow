@@ -3,7 +3,11 @@
 interface AccountSnap {
   type: string;
   currentBalance: number;
-  dueDay: number | null;
+}
+
+interface CreditCardSnap {
+  currentBill: number;
+  dueDay: number;
 }
 
 interface RecurringSnap {
@@ -14,21 +18,19 @@ interface RecurringSnap {
   endDate: Date | null;
 }
 
-// Σ assets − Σ credit card debt
-export function calcNetWorth(accounts: AccountSnap[]): number {
-  return accounts.reduce(
-    (sum, a) => (a.type === "credit_card" ? sum - a.currentBalance : sum + a.currentBalance),
-    0,
-  );
+// Σ assets − Σ credit card bills
+export function calcNetWorth(accounts: AccountSnap[], creditCards: CreditCardSnap[]): number {
+  const assets = accounts.reduce((sum, a) => sum + a.currentBalance, 0);
+  const debt = creditCards.reduce((sum, c) => sum + c.currentBill, 0);
+  return assets - debt;
 }
 
-// Saldo líquido − faturas não vencidas − despesas fixas ainda por vir no mês
-export function calcFreeMoney(accounts: AccountSnap[], recurrings: RecurringSnap[]): {
-  total: number;
-  liquidBalance: number;
-  creditDebt: number;
-  remainingExpenses: number;
-} {
+// Saldo líquido − faturas não vencidas − despesas fixas ainda por vir
+export function calcFreeMoney(
+  accounts: AccountSnap[],
+  creditCards: CreditCardSnap[],
+  recurrings: RecurringSnap[],
+): { total: number; liquidBalance: number; creditDebt: number; remainingExpenses: number } {
   const today = new Date();
   const day = today.getDate();
   const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -37,12 +39,9 @@ export function calcFreeMoney(accounts: AccountSnap[], recurrings: RecurringSnap
     .filter((a) => a.type === "checking" || a.type === "cash")
     .reduce((sum, a) => sum + a.currentBalance, 0);
 
-  // Only subtract credit card balances whose due date hasn't passed yet this month.
-  // Cards with no dueDay are always considered "not yet paid".
-  const creditDebt = accounts
-    .filter((a) => a.type === "credit_card")
-    .filter((a) => a.dueDay === null || a.dueDay >= day)
-    .reduce((sum, a) => sum + a.currentBalance, 0);
+  const creditDebt = creditCards
+    .filter((c) => c.dueDay >= day)
+    .reduce((sum, c) => sum + c.currentBill, 0);
 
   const remainingExpenses = recurrings
     .filter(
@@ -54,17 +53,13 @@ export function calcFreeMoney(accounts: AccountSnap[], recurrings: RecurringSnap
     )
     .reduce((sum, r) => sum + r.amount, 0);
 
-  return {
-    total: liquidBalance - creditDebt - remainingExpenses,
-    liquidBalance,
-    creditDebt,
-    remainingExpenses,
-  };
+  return { total: liquidBalance - creditDebt - remainingExpenses, liquidBalance, creditDebt, remainingExpenses };
 }
 
-// FreeMoney + receitas fixas ainda por vir no mês
+// FreeMoney + receitas fixas ainda por vir
 export function calcMonthForecast(
   accounts: AccountSnap[],
+  creditCards: CreditCardSnap[],
   recurrings: RecurringSnap[],
 ): { total: number; remainingIncome: number } {
   const today = new Date();
@@ -81,7 +76,6 @@ export function calcMonthForecast(
     )
     .reduce((sum, r) => sum + r.amount, 0);
 
-  const { total: freeMoney } = calcFreeMoney(accounts, recurrings);
-
+  const { total: freeMoney } = calcFreeMoney(accounts, creditCards, recurrings);
   return { total: freeMoney + remainingIncome, remainingIncome };
 }

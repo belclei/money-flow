@@ -17,7 +17,7 @@ export default async function InvitePage({ params }: Props) {
     return (
       <main className="flex min-h-screen items-center justify-center p-4">
         <p className="text-muted-foreground">
-          This invite link is invalid or has expired.
+          Este link de convite é inválido ou expirou.
         </p>
       </main>
     );

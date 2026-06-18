@@ -30,24 +30,24 @@ export async function POST(req: NextRequest) {
   try {
     formData = await req.formData();
   } catch {
-    return NextResponse.json({ error: "Invalid form data" }, { status: 400 });
+    return NextResponse.json({ error: "Dados do formulário inválidos" }, { status: 400 });
   }
 
   const file = formData.get("file") as File | null;
   const password = (formData.get("password") as string | null) ?? undefined;
   const cardHolder = (formData.get("cardHolder") as string | null) ?? undefined;
   const month = (formData.get("month") as string | null) ?? "";
-  const accountId = (formData.get("accountId") as string | null) ?? undefined;
+  const creditCardId = (formData.get("creditCardId") as string | null) ?? undefined;
 
-  if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 });
+  if (!file) return NextResponse.json({ error: "Nenhum arquivo enviado" }, { status: 400 });
   if (file.type !== "application/pdf")
-    return NextResponse.json({ error: "Only PDF files are accepted" }, { status: 415 });
+    return NextResponse.json({ error: "Apenas arquivos PDF são aceitos" }, { status: 415 });
   if (file.size > MAX_FILE_SIZE)
-    return NextResponse.json({ error: "File too large (max 20MB)" }, { status: 413 });
+    return NextResponse.json({ error: "Arquivo muito grande (máximo 20MB)" }, { status: 413 });
 
   const buffer = Buffer.from(await file.arrayBuffer());
   if (!isPDF(buffer))
-    return NextResponse.json({ error: "File is not a valid PDF" }, { status: 415 });
+    return NextResponse.json({ error: "O arquivo não é um PDF válido" }, { status: 415 });
 
   // Deduplication check
   const contentHash = createHash("sha256").update(buffer).digest("hex");
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
   const parsed = z.array(ExtractedTransactionSchema).safeParse(rawTransactions);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "LLM returned invalid data", details: parsed.error.issues },
+      { error: "A IA retornou dados inválidos", details: parsed.error.issues },
       { status: 422 }
     );
   }
@@ -95,6 +95,6 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     status: "preview",
     transactions: parsed.data,
-    meta: { filename: file.name, cardBrand, cardHolder, month, detectedCardBrand, contentHash, accountId },
+    meta: { filename: file.name, cardBrand, cardHolder, month, detectedCardBrand, contentHash, creditCardId },
   });
 }

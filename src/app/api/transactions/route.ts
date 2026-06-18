@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   const params = Object.fromEntries(new URL(req.url).searchParams);
   const query = TransactionQuerySchema.safeParse(params);
   if (!query.success) {
-    return NextResponse.json({ error: "Invalid query params" }, { status: 400 });
+    return NextResponse.json({ error: "Parâmetros inválidos" }, { status: 400 });
   }
 
   const { page, limit, month, category, paymentMethod, currency, cardHolder, cardBrand, groupBy } =
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const parsed = ManualTransactionSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input", details: parsed.error.issues }, { status: 400 });
+    return NextResponse.json({ error: "Dados inválidos", details: parsed.error.issues }, { status: 400 });
   }
 
   const transaction = await prisma.transaction.create({

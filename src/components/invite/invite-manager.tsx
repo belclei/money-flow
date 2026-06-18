@@ -105,8 +105,8 @@ export function InviteManager({ initialInvites }: { initialInvites: Invite[] }) 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="admin">Admin — pode importar e editar dados</SelectItem>
-                <SelectItem value="viewer">Viewer — somente leitura</SelectItem>
+                <SelectItem value="admin">Administrador — pode importar e editar dados</SelectItem>
+                <SelectItem value="viewer">Visualizador — somente leitura</SelectItem>
               </SelectContent>
             </Select>
           </div>

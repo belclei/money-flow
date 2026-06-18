@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
-import { PatchAccountSchema } from "@/lib/validators/account";
+import { PatchCreditCardSchema } from "@/lib/validators/credit-card";
 
-interface Params {
-  params: Promise<{ id: string }>;
+interface Params { params: Promise<{ id: string }> }
+
+async function requireOwner(id: string, userId: string) {
+  const card = await prisma.creditCard.findUnique({ where: { id } });
+  if (!card || card.userId !== userId) return null;
+  return card;
 }
 
 export async function PATCH(req: NextRequest, { params }: Params) {
@@ -13,21 +17,22 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (!session || session.user.role !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-
   const { id } = await params;
-  const existing = await prisma.account.findUnique({ where: { id } });
-  if (!existing || existing.userId !== session.user.id) {
+  if (!await requireOwner(id, session.user.id)) {
     return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   }
 
-  const body = await req.json();
-  const parsed = PatchAccountSchema.safeParse(body);
+  const parsed = PatchCreditCardSchema.safeParse(await req.json());
   if (!parsed.success) {
     return NextResponse.json({ error: "Dados inválidos", details: parsed.error.issues }, { status: 400 });
   }
 
-  const account = await prisma.account.update({ where: { id }, data: parsed.data });
-  return NextResponse.json(account);
+  const card = await prisma.creditCard.update({
+    where: { id },
+    data: parsed.data,
+    include: { debitAccount: { select: { id: true, name: true } } },
+  });
+  return NextResponse.json(card);
 }
 
 export async function DELETE(_req: NextRequest, { params }: Params) {
@@ -35,13 +40,11 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   if (!session || session.user.role !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-
   const { id } = await params;
-  const existing = await prisma.account.findUnique({ where: { id } });
-  if (!existing || existing.userId !== session.user.id) {
+  if (!await requireOwner(id, session.user.id)) {
     return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   }
 
-  await prisma.account.delete({ where: { id } });
+  await prisma.creditCard.delete({ where: { id } });
   return NextResponse.json({ status: "ok" });
 }

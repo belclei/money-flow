@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { ReviewTable, type ReviewTransaction } from "@/components/upload/review-table";
 
-type Account = { id: string; name: string; institution: string | null; type: string };
+type CreditCard = { id: string; name: string; institution: string | null };
 type Meta = {
   filename: string;
   cardBrand?: string;
@@ -28,7 +28,7 @@ type Meta = {
   month: string;
   detectedCardBrand?: string;
   contentHash?: string;
-  accountId?: string;
+  creditCardId?: string;
 };
 
 type UploadState =
@@ -47,23 +47,23 @@ export default function UploadPage() {
   const [dragging, setDragging] = useState(false);
   const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [accountId, setAccountId] = useState("");
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [creditCardId, setCreditCardId] = useState("");
+  const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetch("/api/accounts")
+    fetch("/api/credit-cards")
       .then((r) => r.json())
-      .then((d) => setAccounts(d.accounts ?? []));
+      .then((d) => setCreditCards(d.cards ?? []));
   }, []);
 
   const uploadFile = useCallback(async (file: File, pwd?: string) => {
     const fd = new FormData();
     fd.append("file", file);
     if (pwd) fd.append("password", pwd);
-    if (accountId) fd.append("accountId", accountId);
+    if (creditCardId) fd.append("creditCardId", creditCardId);
     return fetch("/api/upload", { method: "POST", body: fd });
-  }, [accountId]);
+  }, [creditCardId]);
 
   const handleFile = useCallback(async (file: File) => {
     if (!file.name.toLowerCase().endsWith(".pdf")) {
@@ -85,11 +85,11 @@ export default function UploadPage() {
     } else if (data.status === "password_required") {
       setState({ status: "password_required", file });
     } else if (data.status === "preview") {
-      setState({ status: "review", transactions: data.transactions, meta: { ...data.meta, accountId: accountId || undefined } });
+      setState({ status: "review", transactions: data.transactions, meta: { ...data.meta, creditCardId: creditCardId || undefined } });
     } else {
       setState({ status: "error", message: data.error ?? "Erro desconhecido." });
     }
-  }, [uploadFile, accountId]);
+  }, [uploadFile, creditCardId]);
 
   const handleReplace = useCallback(async () => {
     if (state.status !== "duplicate_ask") return;
@@ -127,12 +127,12 @@ export default function UploadPage() {
       }
       if (data.status === "preview") {
         setPassword("");
-        setState({ status: "review", transactions: data.transactions, meta: { ...data.meta, accountId: accountId || undefined } });
+        setState({ status: "review", transactions: data.transactions, meta: { ...data.meta, creditCardId: creditCardId || undefined } });
       } else {
         setState({ status: "error", message: data.error ?? "Falha no upload." });
       }
     },
-    [state, password, uploadFile, accountId]
+    [state, password, uploadFile, creditCardId]
   );
 
   const handleConfirm = useCallback(
@@ -203,25 +203,28 @@ export default function UploadPage() {
     <main className="container mx-auto max-w-2xl p-6 space-y-6">
       <h1 className="text-2xl font-semibold">Importar fatura</h1>
 
-      {/* Account selector */}
-      {accounts.length > 0 && (
-        <div className="space-y-2">
-          <Label>Conta / Cartão</Label>
-          <Select value={accountId || "none"} onValueChange={(v) => setAccountId(v === "none" ? "" : (v ?? ""))}>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecionar conta (opcional)" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">— Sem conta associada —</SelectItem>
-              {accounts.map((a) => (
-                <SelectItem key={a.id} value={a.id}>
-                  {a.name}{a.institution ? ` — ${a.institution}` : ""}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+      {/* Credit card selector */}
+      <div className="space-y-2">
+        <Label>Cartão de crédito</Label>
+        <Select value={creditCardId || "none"} onValueChange={(v) => setCreditCardId(v === "none" ? "" : (v ?? ""))}>
+          <SelectTrigger>
+            <SelectValue placeholder="Selecionar cartão (opcional)" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">— Sem cartão associado —</SelectItem>
+            {creditCards.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.name}{c.institution ? ` — ${c.institution}` : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {creditCards.length === 0 && (
+          <p className="text-xs text-muted-foreground">
+            Nenhum cartão cadastrado. <a href="/cartoes" className="underline">Cadastre um cartão</a> para vincular a fatura.
+          </p>
+        )}
+      </div>
 
       <div
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}

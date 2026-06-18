@@ -15,8 +15,9 @@ import {
 } from "@/components/ui/select";
 
 const CATEGORIES = [
-  "food", "transport", "shopping", "health",
-  "entertainment", "utilities", "other",
+  "Alimentação", "Transporte", "Moradia", "Saúde",
+  "Educação", "Lazer", "Vestuário", "Serviços", "Outros",
+  "Salário", "Freelance", "Rendimentos", "Outras receitas",
 ];
 
 const PAYMENT_METHODS = [
