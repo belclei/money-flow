@@ -1,3 +1,6 @@
+"use client";
+
+import React, { useState } from "react";
 import { getBankConfig } from "@/lib/banks";
 import { ACCOUNT_TYPE_LABELS } from "@/lib/validators/account";
 import type { Account, CreditCard } from "@/generated/prisma/client";
@@ -12,13 +15,36 @@ function formatBRL(v: number) {
   }).format(v);
 }
 
-// ─── Bank logo badge ────────────────────────────────────────────────────────
+// ─── Bank logo ──────────────────────────────────────────────────────────────
 
-function BankBadge({ abbrev, accent, text }: { abbrev: string; accent: string; text: string }) {
+function BankLogo({
+  logo,
+  abbrev,
+  accent,
+  text,
+}: {
+  logo?: string;
+  abbrev: string;
+  accent: string;
+  text: string;
+}) {
+  const [failed, setFailed] = useState(false);
+
+  if (logo && !failed) {
+    return (
+      <img
+        src={logo}
+        alt="Logo do banco"
+        className="w-10 h-10 object-contain rounded"
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+
   return (
     <span
-      className="inline-flex items-center justify-center rounded-md px-1.5 py-0.5 text-[10px] font-bold tracking-wide leading-none"
-      style={{ background: accent, color: text, minWidth: "2rem" }}
+      className="inline-flex items-center justify-center rounded w-10 h-10 text-[11px] font-bold tracking-wide"
+      style={{ background: accent, color: text }}
     >
       {abbrev}
     </span>
@@ -50,15 +76,15 @@ function AccountCard({ account }: { account: AccountWithCommitted }) {
       className="relative overflow-hidden rounded-2xl p-5 flex flex-col gap-3 shadow-md"
       style={{ background: `linear-gradient(135deg, ${bank.bg} 0%, ${bank.accent} 100%)`, color: bank.text }}
     >
-      {/* Header */}
+      {/* Header with logo */}
       <div className="flex items-start justify-between">
-        <div>
+        <div className="flex-1">
           <p className="text-[10px] font-medium opacity-70 uppercase tracking-wider">
             {ACCOUNT_TYPE_LABELS[account.type as keyof typeof ACCOUNT_TYPE_LABELS] ?? account.type}
           </p>
           <p className="font-semibold text-sm mt-0.5">{account.name}</p>
         </div>
-        <BankBadge abbrev={bank.abbrev} accent={bank.accent} text={bank.text} />
+        <BankLogo logo={bank.logo} abbrev={bank.abbrev} accent={bank.accent} text={bank.text} />
       </div>
 
       {/* Balance — sempre exibido */}
@@ -122,13 +148,13 @@ function CreditCardCard({ card }: { card: CreditCard }) {
       className="relative overflow-hidden rounded-2xl p-5 flex flex-col gap-3 shadow-md"
       style={{ background: `linear-gradient(135deg, ${bank.bg} 0%, ${bank.accent} 100%)`, color: bank.text }}
     >
-      {/* Header */}
+      {/* Header with logo */}
       <div className="flex items-start justify-between">
-        <div>
+        <div className="flex-1">
           <p className="text-[10px] font-medium opacity-70 uppercase tracking-wider">Cartão de crédito</p>
           <p className="font-semibold text-sm mt-0.5">{card.name}</p>
         </div>
-        <BankBadge abbrev={bank.abbrev} accent={bank.accent} text={bank.text} />
+        <BankLogo logo={bank.logo} abbrev={bank.abbrev} accent={bank.accent} text={bank.text} />
       </div>
 
       {/* Fatura */}
