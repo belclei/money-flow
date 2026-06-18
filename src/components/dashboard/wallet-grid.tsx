@@ -18,25 +18,23 @@ function formatBRL(v: number) {
 // ─── Bank logo ──────────────────────────────────────────────────────────────
 
 function BankLogo({
-  logo,
+  logoSvg,
   abbrev,
   accent,
   text,
 }: {
-  logo?: string;
+  logoSvg?: string;
   abbrev: string;
   accent: string;
   text: string;
 }) {
-  const [failed, setFailed] = useState(false);
-
-  if (logo && !failed) {
+  if (logoSvg) {
     return (
-      <img
-        src={logo}
-        alt="Logo do banco"
-        className="w-10 h-10 object-contain rounded"
-        onError={() => setFailed(true)}
+      <svg
+        viewBox="0 0 20 20"
+        className="w-10 h-10 rounded"
+        style={{ background: accent }}
+        dangerouslySetInnerHTML={{ __html: logoSvg }}
       />
     );
   }
@@ -84,7 +82,7 @@ function AccountCard({ account }: { account: AccountWithCommitted }) {
           </p>
           <p className="font-semibold text-sm mt-0.5">{account.name}</p>
         </div>
-        <BankLogo logo={bank.logo} abbrev={bank.abbrev} accent={bank.accent} text={bank.text} />
+        <BankLogo logoSvg={bank.logoSvg} abbrev={bank.abbrev} accent={bank.accent} text={bank.text} />
       </div>
 
       {/* Balance — sempre exibido */}
@@ -154,7 +152,7 @@ function CreditCardCard({ card }: { card: CreditCard }) {
           <p className="text-[10px] font-medium opacity-70 uppercase tracking-wider">Cartão de crédito</p>
           <p className="font-semibold text-sm mt-0.5">{card.name}</p>
         </div>
-        <BankLogo logo={bank.logo} abbrev={bank.abbrev} accent={bank.accent} text={bank.text} />
+        <BankLogo logoSvg={bank.logoSvg} abbrev={bank.abbrev} accent={bank.accent} text={bank.text} />
       </div>
 
       {/* Fatura */}
