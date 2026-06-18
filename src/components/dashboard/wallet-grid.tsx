@@ -39,6 +39,7 @@ function BankLogo({
       <img
         src={currentUrl}
         alt="Logo do banco"
+        referrerPolicy="no-referrer"
         className="w-10 h-10 object-contain rounded bg-white p-0.5"
         onError={() => setIdx((i) => i + 1)}
       />
