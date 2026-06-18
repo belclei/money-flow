@@ -19,11 +19,12 @@ interface FormState {
   type: AccountType;
   institution: string;
   currentBalance: string;
+  limit: string;
   currency: string;
 }
 
 function emptyForm(): FormState {
-  return { name: "", type: "checking", institution: "", currentBalance: "0", currency: "BRL" };
+  return { name: "", type: "checking", institution: "", currentBalance: "0", limit: "", currency: "BRL" };
 }
 
 function accountToForm(a: Account): FormState {
@@ -32,6 +33,7 @@ function accountToForm(a: Account): FormState {
     type: a.type as AccountType,
     institution: a.institution ?? "",
     currentBalance: String(a.currentBalance),
+    limit: a.limit != null ? String(a.limit) : "",
     currency: a.currency,
   };
 }
@@ -65,6 +67,7 @@ export function AccountForm({ account, onSave, onCancel }: Props) {
         type: form.type,
         institution: form.institution || null,
         currentBalance: parseFloat(form.currentBalance) || 0,
+        limit: form.limit ? parseFloat(form.limit) : null,
         currency: form.currency,
       }),
     });
@@ -115,9 +118,15 @@ export function AccountForm({ account, onSave, onCancel }: Props) {
         <Input id="acc-institution" placeholder="Ex: Banco do Brasil" value={form.institution} onChange={(e) => set("institution", e.target.value)} />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="acc-balance">Saldo atual</Label>
-        <Input id="acc-balance" type="number" step="0.01" required placeholder="0,00" value={form.currentBalance} onChange={(e) => set("currentBalance", e.target.value)} />
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label htmlFor="acc-balance">Saldo atual</Label>
+          <Input id="acc-balance" type="number" step="0.01" required placeholder="0,00" value={form.currentBalance} onChange={(e) => set("currentBalance", e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="acc-limit">Limite (opcional)</Label>
+          <Input id="acc-limit" type="number" step="0.01" placeholder="Ex: 2.000,00" value={form.limit} onChange={(e) => set("limit", e.target.value)} />
+        </div>
       </div>
 
       {error && <p className="text-sm text-red-500">{error}</p>}
