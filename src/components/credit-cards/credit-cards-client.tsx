@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -185,7 +186,9 @@ function CreditCardItem({
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <p className="font-medium">{card.name}</p>
+            <Link href={`/cartoes/${card.id}`} className="font-medium hover:text-emerald-600 transition-colors">
+              {card.name}
+            </Link>
             {card.institution && <p className="text-xs text-muted-foreground">{card.institution}</p>}
           </div>
           <div className="flex flex-col items-end gap-1 shrink-0">
