@@ -3,33 +3,34 @@ export interface BankConfig {
   text: string;     // text color (contrasting)
   accent: string;   // accent / muted tone
   abbrev: string;   // abbreviation for the logo badge
+  logo?: string;    // URL to bank logo (optional)
 }
 
 const BANK_MAP: Record<string, BankConfig> = {
-  nubank:           { bg: "#8A05BE", text: "#FFFFFF", accent: "#B44FE8", abbrev: "Nu" },
-  itaú:             { bg: "#003D7C", text: "#FFFFFF", accent: "#FF6B00", abbrev: "Itaú" },
-  itau:             { bg: "#003D7C", text: "#FFFFFF", accent: "#FF6B00", abbrev: "Itaú" },
-  bradesco:         { bg: "#CC0000", text: "#FFFFFF", accent: "#FF4444", abbrev: "Bra" },
-  santander:        { bg: "#EC0000", text: "#FFFFFF", accent: "#FF3333", abbrev: "San" },
-  "banco do brasil":{ bg: "#003087", text: "#FFFFFF", accent: "#FEDA00", abbrev: "BB" },
-  "bb":             { bg: "#003087", text: "#FFFFFF", accent: "#FEDA00", abbrev: "BB" },
-  caixa:            { bg: "#005CA9", text: "#FFFFFF", accent: "#F26522", abbrev: "CEF" },
-  "cef":            { bg: "#005CA9", text: "#FFFFFF", accent: "#F26522", abbrev: "CEF" },
-  inter:            { bg: "#FF6B00", text: "#FFFFFF", accent: "#FF9240", abbrev: "Inter" },
-  c6:               { bg: "#1B1B1B", text: "#FFFFFF", accent: "#444444", abbrev: "C6" },
-  "c6 bank":        { bg: "#1B1B1B", text: "#FFFFFF", accent: "#444444", abbrev: "C6" },
-  xp:               { bg: "#1A1A2E", text: "#FFFFFF", accent: "#E8C766", abbrev: "XP" },
-  btg:              { bg: "#0A2463", text: "#FFFFFF", accent: "#3D7EAA", abbrev: "BTG" },
-  sicoob:           { bg: "#008140", text: "#FFFFFF", accent: "#00A651", abbrev: "Sic" },
-  sicredi:          { bg: "#009B3A", text: "#FFFFFF", accent: "#00C14A", abbrev: "Scr" },
-  picpay:           { bg: "#21C25E", text: "#FFFFFF", accent: "#14A04A", abbrev: "Pic" },
-  pagbank:          { bg: "#FFCA00", text: "#1A1A1A", accent: "#E6B500", abbrev: "Pag" },
-  neon:             { bg: "#00D1FF", text: "#0A0A0A", accent: "#00A8CC", abbrev: "Neon" },
-  original:         { bg: "#00B386", text: "#FFFFFF", accent: "#009970", abbrev: "Ori" },
-  next:             { bg: "#00D890", text: "#0A1A0F", accent: "#00B578", abbrev: "Next" },
-  mercadopago:      { bg: "#00BCFF", text: "#0A0A0A", accent: "#0099E0", abbrev: "MP" },
-  will:             { bg: "#5533FF", text: "#FFFFFF", accent: "#7755FF", abbrev: "Will" },
-  bs2:              { bg: "#0066CC", text: "#FFFFFF", accent: "#0080FF", abbrev: "BS2" },
+  nubank:           { bg: "#8A05BE", text: "#FFFFFF", accent: "#B44FE8", abbrev: "Nu", logo: "https://logo.clearbit.com/nubank.com.br" },
+  itaú:             { bg: "#003D7C", text: "#FFFFFF", accent: "#FF6B00", abbrev: "Itaú", logo: "https://logo.clearbit.com/itau.com.br" },
+  itau:             { bg: "#003D7C", text: "#FFFFFF", accent: "#FF6B00", abbrev: "Itaú", logo: "https://logo.clearbit.com/itau.com.br" },
+  bradesco:         { bg: "#CC0000", text: "#FFFFFF", accent: "#FF4444", abbrev: "Bra", logo: "https://logo.clearbit.com/bradesco.com.br" },
+  santander:        { bg: "#EC0000", text: "#FFFFFF", accent: "#FF3333", abbrev: "San", logo: "https://logo.clearbit.com/santander.com.br" },
+  "banco do brasil":{ bg: "#003087", text: "#FFFFFF", accent: "#FEDA00", abbrev: "BB", logo: "https://logo.clearbit.com/bb.com.br" },
+  "bb":             { bg: "#003087", text: "#FFFFFF", accent: "#FEDA00", abbrev: "BB", logo: "https://logo.clearbit.com/bb.com.br" },
+  caixa:            { bg: "#005CA9", text: "#FFFFFF", accent: "#F26522", abbrev: "CEF", logo: "https://logo.clearbit.com/caixa.gov.br" },
+  "cef":            { bg: "#005CA9", text: "#FFFFFF", accent: "#F26522", abbrev: "CEF", logo: "https://logo.clearbit.com/caixa.gov.br" },
+  inter:            { bg: "#FF6B00", text: "#FFFFFF", accent: "#FF9240", abbrev: "Inter", logo: "https://logo.clearbit.com/inter.com.br" },
+  c6:               { bg: "#1B1B1B", text: "#FFFFFF", accent: "#444444", abbrev: "C6", logo: "https://logo.clearbit.com/c6bank.com.br" },
+  "c6 bank":        { bg: "#1B1B1B", text: "#FFFFFF", accent: "#444444", abbrev: "C6", logo: "https://logo.clearbit.com/c6bank.com.br" },
+  xp:               { bg: "#1A1A2E", text: "#FFFFFF", accent: "#E8C766", abbrev: "XP", logo: "https://logo.clearbit.com/xpinvestimentos.com.br" },
+  btg:              { bg: "#0A2463", text: "#FFFFFF", accent: "#3D7EAA", abbrev: "BTG", logo: "https://logo.clearbit.com/btgpactual.com" },
+  sicoob:           { bg: "#008140", text: "#FFFFFF", accent: "#00A651", abbrev: "Sic", logo: "https://logo.clearbit.com/sicoob.com.br" },
+  sicredi:          { bg: "#009B3A", text: "#FFFFFF", accent: "#00C14A", abbrev: "Scr", logo: "https://logo.clearbit.com/sicredi.com.br" },
+  picpay:           { bg: "#21C25E", text: "#FFFFFF", accent: "#14A04A", abbrev: "Pic", logo: "https://logo.clearbit.com/picpay.com" },
+  pagbank:          { bg: "#FFCA00", text: "#1A1A1A", accent: "#E6B500", abbrev: "Pag", logo: "https://logo.clearbit.com/pagbank.com.br" },
+  neon:             { bg: "#00D1FF", text: "#0A0A0A", accent: "#00A8CC", abbrev: "Neon", logo: "https://logo.clearbit.com/neonbank.com.br" },
+  original:         { bg: "#00B386", text: "#FFFFFF", accent: "#009970", abbrev: "Ori", logo: "https://logo.clearbit.com/bankoriginal.com.br" },
+  next:             { bg: "#00D890", text: "#0A1A0F", accent: "#00B578", abbrev: "Next", logo: "https://logo.clearbit.com/nextwallet.com.br" },
+  mercadopago:      { bg: "#00BCFF", text: "#0A0A0A", accent: "#0099E0", abbrev: "MP", logo: "https://logo.clearbit.com/mercadopago.com.br" },
+  will:             { bg: "#5533FF", text: "#FFFFFF", accent: "#7755FF", abbrev: "Will", logo: "https://logo.clearbit.com/willbank.com.br" },
+  bs2:              { bg: "#0066CC", text: "#FFFFFF", accent: "#0080FF", abbrev: "BS2", logo: "https://logo.clearbit.com/bs2.com" },
 };
 
 const DEFAULT: BankConfig = { bg: "#18181B", text: "#FFFFFF", accent: "#3F3F46", abbrev: "—" };
