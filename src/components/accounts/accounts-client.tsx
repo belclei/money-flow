@@ -37,7 +37,6 @@ function formatBRL(value: number, currency = "BRL") {
 const TYPE_COLORS: Record<AccountType, string> = {
   checking: "bg-blue-100 text-blue-800",
   savings: "bg-green-100 text-green-800",
-  credit_card: "bg-purple-100 text-purple-800",
   investment: "bg-amber-100 text-amber-800",
   cash: "bg-gray-100 text-gray-800",
 };
@@ -180,15 +179,6 @@ function AccountCard({
   onShare: (a: AccountWithAccesses) => void;
 }) {
   const type = account.type as AccountType;
-  const isCreditCard = type === "credit_card";
-  const available =
-    isCreditCard && account.creditLimit != null
-      ? account.creditLimit - account.currentBalance
-      : null;
-  const usedPct =
-    isCreditCard && account.creditLimit
-      ? Math.min(100, (account.currentBalance / account.creditLimit) * 100)
-      : null;
 
   return (
     <Card className="group relative">
@@ -212,44 +202,12 @@ function AccountCard({
       </CardHeader>
 
       <CardContent className="space-y-2">
-        {isCreditCard ? (
-          <>
-            <div>
-              <p className="text-xs text-muted-foreground">Fatura atual</p>
-              <p className="text-xl font-semibold tabular-nums text-red-600">
-                {formatBRL(account.currentBalance, account.currency)}
-              </p>
-            </div>
-            {account.creditLimit != null && (
-              <>
-                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-purple-500 transition-all"
-                    style={{ width: `${usedPct}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Disponível: {formatBRL(available ?? 0, account.currency)}</span>
-                  <span>Limite: {formatBRL(account.creditLimit, account.currency)}</span>
-                </div>
-              </>
-            )}
-            {(account.closingDay || account.dueDay) && (
-              <p className="text-xs text-muted-foreground">
-                {account.closingDay && `Fecha dia ${account.closingDay}`}
-                {account.closingDay && account.dueDay && " · "}
-                {account.dueDay && `Vence dia ${account.dueDay}`}
-              </p>
-            )}
-          </>
-        ) : (
-          <div>
-            <p className="text-xs text-muted-foreground">Saldo</p>
-            <p className={`text-xl font-semibold tabular-nums ${account.currentBalance < 0 ? "text-red-600" : ""}`}>
-              {formatBRL(account.currentBalance, account.currency)}
-            </p>
-          </div>
-        )}
+        <div>
+          <p className="text-xs text-muted-foreground">Saldo</p>
+          <p className={`text-xl font-semibold tabular-nums ${account.currentBalance < 0 ? "text-red-600" : ""}`}>
+            {formatBRL(account.currentBalance, account.currency)}
+          </p>
+        </div>
 
         {account.accesses.length > 0 && (
           <p className="text-xs text-muted-foreground">

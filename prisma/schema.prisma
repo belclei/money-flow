@@ -8,14 +8,15 @@ datasource db {
 }
 
 model User {
-  id                     String          @id @default(cuid())
-  email                  String          @unique
+  id                     String             @id @default(cuid())
+  email                  String             @unique
   name                   String?
   passwordHash           String
-  role                   String          @default("viewer")
-  createdAt              DateTime        @default(now())
-  accountAccesses        AccountAccess[] @relation("AccountAccessGrantee")
-  portadorAliasesGranted PortadorAlias[] @relation("PortadorAliasGrantee")
+  role                   String             @default("viewer")
+  createdAt              DateTime           @default(now())
+  accountAccesses        AccountAccess[]    @relation("AccountAccessGrantee")
+  creditCardAccesses     CreditCardAccess[] @relation("CreditCardAccessGrantee")
+  portadorAliasesGranted PortadorAlias[]    @relation("PortadorAliasGrantee")
 }
 
 model Invite {
@@ -28,22 +29,57 @@ model Invite {
   createdAt DateTime  @default(now())
 }
 
+model CreditCard {
+  id             String             @id @default(cuid())
+  userId         String
+  name           String
+  institution    String?
+  creditLimit    Float?
+  closingDay     Int?               // dia de fechamento da fatura
+  dueDay         Int                // dia de vencimento (obrigatório)
+  currentBill    Float              @default(0) // valor da fatura atual
+  currency       String             @default("BRL")
+  autoDebit      Boolean            @default(false)
+  debitAccountId String?            // conta corrente para débito automático
+  debitAccount   Account?           @relation("CreditCardDebitAccount", fields: [debitAccountId], references: [id])
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  invoices       Invoice[]
+  accesses       CreditCardAccess[]
+
+  @@index([userId])
+  @@index([debitAccountId])
+}
+
+model CreditCardAccess {
+  id           String     @id @default(cuid())
+  creditCardId String
+  creditCard   CreditCard @relation(fields: [creditCardId], references: [id], onDelete: Cascade)
+  granteeId    String
+  grantee      User       @relation("CreditCardAccessGrantee", fields: [granteeId], references: [id], onDelete: Cascade)
+  permission   String     // "view" | "edit"
+  createdAt    DateTime   @default(now())
+
+  @@unique([creditCardId, granteeId])
+  @@index([granteeId])
+}
+
 model Invoice {
-  id           String        @id @default(cuid())
-  userId       String?       // owner — quem importou
-  accountId    String?       // qual conta este extrato pertence
-  account      Account?      @relation(fields: [accountId], references: [id])
+  id           String      @id @default(cuid())
+  userId       String?
+  creditCardId String?
+  creditCard   CreditCard? @relation(fields: [creditCardId], references: [id])
   filename     String
-  contentHash  String?       @unique
+  contentHash  String?     @unique
   cardBrand    String?
   cardHolder   String?
   month        String
-  uploadedAt   DateTime      @default(now())
+  uploadedAt   DateTime    @default(now())
   status       String
   transactions Transaction[]
 
   @@index([userId])
-  @@index([accountId])
+  @@index([creditCardId])
 }
 
 model Purchase {
@@ -64,7 +100,7 @@ model Purchase {
 
 model Category {
   id                    String                 @id @default(cuid())
-  userId                String?                // null = categoria padrão do sistema
+  userId                String?
   name                  String
   kind                  String                 // income | expense | transfer
   isFixed               Boolean                @default(false)
@@ -78,17 +114,14 @@ model Account {
   id                    String                 @id @default(cuid())
   userId                String
   name                  String
-  type                  String                 // checking | savings | credit_card | investment | cash
+  type                  String                 // checking | savings | investment | cash
   institution           String?
   currentBalance        Float                  @default(0)
   currency              String                 @default("BRL")
-  creditLimit           Float?
-  closingDay            Int?
-  dueDay                Int?
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   recurringTransactions RecurringTransaction[]
-  invoices              Invoice[]
+  creditCards           CreditCard[]           @relation("CreditCardDebitAccount")
   accesses              AccountAccess[]
 
   @@index([userId])
@@ -109,10 +142,10 @@ model AccountAccess {
 
 model PortadorAlias {
   id            String   @id @default(cuid())
-  ownerUserId   String   // owner da conta que criou o mapeamento
-  granteeUserId String   // usuário a quem este nome pertence
+  ownerUserId   String
+  granteeUserId String
   grantee       User     @relation("PortadorAliasGrantee", fields: [granteeUserId], references: [id], onDelete: Cascade)
-  name          String   // string exata do cardHolder no PDF
+  name          String
   createdAt     DateTime @default(now())
 
   @@unique([ownerUserId, name])
@@ -140,25 +173,25 @@ model RecurringTransaction {
 }
 
 model Transaction {
-  id                String    @id @default(cuid())
+  id                String     @id @default(cuid())
   userId            String?
   date              DateTime
   description       String
   amount            Float
-  currency          String    @default("BRL")
+  currency          String     @default("BRL")
   amountBRL         Float?
   category          String?
   paymentMethod     String
   cardBrand         String?
   cardHolder        String?
   invoiceId         String?
-  invoice           Invoice?  @relation(fields: [invoiceId], references: [id])
+  invoice           Invoice?   @relation(fields: [invoiceId], references: [id])
   source            String
   invoiceMonth      String?
   installmentNumber Int?
   purchaseId        String?
-  purchase          Purchase? @relation(fields: [purchaseId], references: [id])
-  createdAt         DateTime  @default(now())
+  purchase          Purchase?  @relation(fields: [purchaseId], references: [id])
+  createdAt         DateTime   @default(now())
 
   @@index([userId])
   @@index([date])

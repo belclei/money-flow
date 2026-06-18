@@ -1,25 +1,30 @@
 import { prisma } from "@/lib/db/prisma";
 
 export async function transactionVisibilityWhere(userId: string) {
-  const [aliases, grants] = await Promise.all([
+  const [aliases, accountGrants, cardGrants] = await Promise.all([
     prisma.portadorAlias.findMany({ where: { granteeUserId: userId } }),
     prisma.accountAccess.findMany({ where: { granteeId: userId }, select: { accountId: true } }),
+    prisma.creditCardAccess.findMany({ where: { granteeId: userId }, select: { creditCardId: true } }),
   ]);
 
   return {
     OR: [
-      // Owner da conta vê todas as transações dela
-      { invoice: { account: { userId } } },
-      // Portador: vê transações onde seu nome aparece, dentro da conta do owner que criou o alias
+      // Dono do cartão — vê todas as transações das suas faturas
+      { invoice: { creditCard: { userId } } },
+      // Portador — vê transações onde seu nome aparece
       ...aliases.map((a) => ({
         cardHolder: a.name,
-        invoice: { account: { userId: a.ownerUserId } },
+        invoice: { creditCard: { userId: a.ownerUserId } },
       })),
-      // Acesso explícito concedido: vê todas as transações da conta
-      ...(grants.length > 0
-        ? [{ invoice: { accountId: { in: grants.map((g) => g.accountId) } } }]
+      // Acesso explícito concedido ao cartão
+      ...(cardGrants.length > 0
+        ? [{ invoice: { creditCardId: { in: cardGrants.map((g) => g.creditCardId) } } }]
         : []),
-      // Transações manuais próprias (source = manual, sem invoice)
+      // Acesso a contas (mantido para transações manuais futuras)
+      ...(accountGrants.length > 0
+        ? [{ invoice: { is: null }, userId }]
+        : []),
+      // Transações manuais do próprio usuário
       { userId, invoiceId: null },
     ],
   };
@@ -35,6 +40,20 @@ export async function accountVisibilityWhere(userId: string) {
     OR: [
       { userId },
       ...(grants.length > 0 ? [{ id: { in: grants.map((g) => g.accountId) } }] : []),
+    ],
+  };
+}
+
+export async function creditCardVisibilityWhere(userId: string) {
+  const grants = await prisma.creditCardAccess.findMany({
+    where: { granteeId: userId },
+    select: { creditCardId: true },
+  });
+
+  return {
+    OR: [
+      { userId },
+      ...(grants.length > 0 ? [{ id: { in: grants.map((g) => g.creditCardId) } }] : []),
     ],
   };
 }
