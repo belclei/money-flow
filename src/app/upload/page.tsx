@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Dialog,
   DialogContent,
@@ -42,12 +43,13 @@ type UploadState =
   | { status: "success"; count: number }
   | { status: "error"; message: string };
 
-export default function UploadPage() {
+function UploadPageInner() {
+  const searchParams = useSearchParams();
   const [state, setState] = useState<UploadState>({ status: "idle" });
   const [dragging, setDragging] = useState(false);
   const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [creditCardId, setCreditCardId] = useState("");
+  const [creditCardId, setCreditCardId] = useState(searchParams.get("cartao") ?? "");
   const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -313,6 +315,14 @@ export default function UploadPage() {
         </DialogContent>
       </Dialog>
     </main>
+  );
+}
+
+export default function UploadPage() {
+  return (
+    <Suspense>
+      <UploadPageInner />
+    </Suspense>
   );
 }
 

@@ -186,9 +186,6 @@ export default async function DashboardPage({ searchParams }: Props) {
           <Link href="/recurring" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
             Recorrências
           </Link>
-          <Link href="/transactions" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
-            Transações
-          </Link>
           <Link href="/upload" className={cn(buttonVariants({ size: "sm" }))}>
             Importar fatura
           </Link>
