@@ -16,7 +16,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   const { id, granteeId } = await params;
   const account = await prisma.account.findUnique({ where: { id } });
   if (!account || account.userId !== session.user.id) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   }
 
   await prisma.accountAccess.deleteMany({ where: { accountId: id, granteeId } });

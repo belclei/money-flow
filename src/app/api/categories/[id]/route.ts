@@ -16,19 +16,19 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
   const { id } = await params;
   const existing = await prisma.category.findUnique({ where: { id } });
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   // Categorias do sistema (userId null) não podem ser editadas por usuários
   if (existing.userId === null) {
-    return NextResponse.json({ error: "Cannot edit system categories" }, { status: 403 });
+    return NextResponse.json({ error: "Categorias do sistema não podem ser editadas" }, { status: 403 });
   }
   if (existing.userId !== session.user.id) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   }
 
   const body = await req.json();
   const parsed = PatchCategorySchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input", details: parsed.error.issues }, { status: 400 });
+    return NextResponse.json({ error: "Dados inválidos", details: parsed.error.issues }, { status: 400 });
   }
 
   const category = await prisma.category.update({ where: { id }, data: parsed.data });
@@ -43,12 +43,12 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
 
   const { id } = await params;
   const existing = await prisma.category.findUnique({ where: { id } });
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   if (existing.userId === null) {
-    return NextResponse.json({ error: "Cannot delete system categories" }, { status: 403 });
+    return NextResponse.json({ error: "Categorias do sistema não podem ser excluídas" }, { status: 403 });
   }
   if (existing.userId !== session.user.id) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   }
 
   await prisma.category.delete({ where: { id } });

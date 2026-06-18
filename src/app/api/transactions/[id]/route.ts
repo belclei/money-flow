@@ -31,11 +31,11 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
   const { id } = await params;
   const existing = await canAccess(id, session.user.id);
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
 
   const body = await req.json();
   const parsed = PatchSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
 
   const { date: rawDate, ...rest } = parsed.data;
   const transaction = await prisma.transaction.update({
@@ -54,7 +54,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
 
   const { id } = await params;
   const existing = await canAccess(id, session.user.id);
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
 
   await prisma.transaction.delete({ where: { id } });
   return NextResponse.json({ status: "ok" });

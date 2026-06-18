@@ -1,12 +1,11 @@
 import { z } from "zod";
 
-export const CATEGORY_KINDS = ["income", "expense", "transfer"] as const;
+export const CATEGORY_KINDS = ["income", "expense"] as const;
 export type CategoryKind = (typeof CATEGORY_KINDS)[number];
 
 export const CATEGORY_KIND_LABELS: Record<CategoryKind, string> = {
   income: "Receita",
   expense: "Despesa",
-  transfer: "Transferência",
 };
 
 export const CategorySchema = z.object({
@@ -29,7 +28,6 @@ export const DEFAULT_CATEGORIES: Array<{ name: string; kind: CategoryKind; isFix
   { name: "Outros", kind: "expense", isFixed: false },
   { name: "Salário", kind: "income", isFixed: true },
   { name: "Freelance", kind: "income", isFixed: false },
-  { name: "Investimentos", kind: "income", isFixed: false },
+  { name: "Rendimentos", kind: "income", isFixed: false },
   { name: "Outras receitas", kind: "income", isFixed: false },
-  { name: "Transferência", kind: "transfer", isFixed: false },
 ];

@@ -17,13 +17,13 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const { id } = await params;
   const existing = await prisma.recurringTransaction.findUnique({ where: { id } });
   if (!existing || existing.userId !== session.user.id) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   }
 
   const body = await req.json();
   const parsed = PatchRecurringSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input", details: parsed.error.issues }, { status: 400 });
+    return NextResponse.json({ error: "Dados inválidos", details: parsed.error.issues }, { status: 400 });
   }
 
   const { endDate, ...rest } = parsed.data;
@@ -48,7 +48,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   const { id } = await params;
   const existing = await prisma.recurringTransaction.findUnique({ where: { id } });
   if (!existing || existing.userId !== session.user.id) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   }
 
   await prisma.recurringTransaction.delete({ where: { id } });

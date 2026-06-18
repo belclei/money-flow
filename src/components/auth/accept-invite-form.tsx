@@ -22,7 +22,7 @@ export function AcceptInviteForm({ token, email }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (password !== confirm) {
-      setError("Passwords do not match");
+      setError("As senhas não coincidem");
       return;
     }
     setLoading(true);
@@ -38,7 +38,7 @@ export function AcceptInviteForm({ token, email }: Props) {
 
     if (!res.ok) {
       const data = await res.json();
-      setError(data.error ?? "Failed to create account");
+      setError(data.error ?? "Erro ao criar conta");
     } else {
       router.push("/auth/login?invited=1");
     }
@@ -47,13 +47,13 @@ export function AcceptInviteForm({ token, email }: Props) {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
-        <CardTitle>Set your password</CardTitle>
+        <CardTitle>Criar sua senha</CardTitle>
         <CardDescription>{email}</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">Senha</Label>
             <Input
               id="password"
               type="password"
@@ -64,7 +64,7 @@ export function AcceptInviteForm({ token, email }: Props) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="confirm">Confirm password</Label>
+            <Label htmlFor="confirm">Confirmar senha</Label>
             <Input
               id="confirm"
               type="password"
@@ -76,7 +76,7 @@ export function AcceptInviteForm({ token, email }: Props) {
           </div>
           {error && <p className="text-sm text-red-500">{error}</p>}
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Creating account…" : "Create account"}
+            {loading ? "Criando conta…" : "Criar conta"}
           </Button>
         </form>
       </CardContent>

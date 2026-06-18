@@ -19,12 +19,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   }
   const { id } = await params;
   if (!await requireOwner(id, session.user.id)) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   }
 
   const parsed = PatchCreditCardSchema.safeParse(await req.json());
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input", details: parsed.error.issues }, { status: 400 });
+    return NextResponse.json({ error: "Dados inválidos", details: parsed.error.issues }, { status: 400 });
   }
 
   const card = await prisma.creditCard.update({
@@ -42,7 +42,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   }
   const { id } = await params;
   if (!await requireOwner(id, session.user.id)) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   }
 
   await prisma.creditCard.delete({ where: { id } });

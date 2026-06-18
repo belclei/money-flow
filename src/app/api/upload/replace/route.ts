@@ -17,12 +17,12 @@ export async function DELETE(req: NextRequest) {
   const invoiceId = searchParams.get("invoiceId");
 
   if (!invoiceId) {
-    return NextResponse.json({ error: "invoiceId required" }, { status: 400 });
+    return NextResponse.json({ error: "invoiceId obrigatório" }, { status: 400 });
   }
 
   const invoice = await prisma.invoice.findUnique({ where: { id: invoiceId } });
   if (!invoice || invoice.userId !== session.user.id) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   }
 
   try {

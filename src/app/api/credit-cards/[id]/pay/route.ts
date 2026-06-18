@@ -18,12 +18,12 @@ export async function POST(req: NextRequest, { params }: Params) {
     include: { debitAccount: true },
   });
   if (!card || card.userId !== session.user.id) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   }
 
   const parsed = PayBillSchema.safeParse(await req.json());
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+    return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
   }
 
   const { amount } = parsed.data;

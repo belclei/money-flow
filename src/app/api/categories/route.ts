@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const parsed = CategorySchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input", details: parsed.error.issues }, { status: 400 });
+    return NextResponse.json({ error: "Dados inválidos", details: parsed.error.issues }, { status: 400 });
   }
 
   const category = await prisma.category.create({

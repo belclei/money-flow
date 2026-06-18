@@ -12,7 +12,7 @@ import {
 export async function GET(req: NextRequest) {
   const token = new URL(req.url).searchParams.get("token");
   if (!token) {
-    return NextResponse.json({ error: "Missing token" }, { status: 400 });
+    return NextResponse.json({ error: "Token ausente" }, { status: 400 });
   }
 
   const invite = await prisma.invite.findUnique({ where: { token } });
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const parsed = InviteAcceptSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+      return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
     }
 
     const invite = await prisma.invite.findUnique({
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 
     if (!invite || invite.usedAt || invite.expiresAt < new Date()) {
       return NextResponse.json(
-        { error: "Invalid or expired invite" },
+        { error: "Convite inválido ou expirado" },
         { status: 400 }
       );
     }
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     });
     if (existing) {
       return NextResponse.json(
-        { error: "An account with this email already exists" },
+        { error: "Já existe uma conta com este e-mail" },
         { status: 409 }
       );
     }
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const parsed = InviteCreateSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+    return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
   }
 
   const token = randomBytes(32).toString("hex");
