@@ -15,6 +15,7 @@ export const AccountSchema = z.object({
   type: z.enum(ACCOUNT_TYPES),
   institution: z.string().max(100).optional().nullable(),
   currentBalance: z.number().finite(),
+  limit: z.number().positive().optional().nullable(),
   currency: z.string().default("BRL"),
 });
 

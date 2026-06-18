@@ -4,15 +4,7 @@ import type { Account, CreditCard } from "@/generated/prisma/client";
 
 type AccountWithCommitted = Account & { committed: number };
 
-function formatBRL(v: number, compact = false) {
-  if (compact && Math.abs(v) >= 1000) {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-      notation: "compact",
-      maximumFractionDigits: 1,
-    }).format(v);
-  }
+function formatBRL(v: number) {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
@@ -34,10 +26,24 @@ function BankBadge({ abbrev, accent, text }: { abbrev: string; accent: string; t
 }
 
 // ─── Account card ───────────────────────────────────────────────────────────
+// Regras de exibição (sem repetir dados):
+//   • Sem limite e sem comprometido → só mostra saldo
+//   • Com comprometido (sem limite) → saldo + "a sair" + disponível
+//   • Com limite → saldo + barra (saldo / limite) + disponível p/ gastar
+//   • Com limite e comprometido → barra + disponível real (saldo − comprometido)
 
 function AccountCard({ account }: { account: AccountWithCommitted }) {
   const bank = getBankConfig(account.institution);
+  const hasLimit = account.limit != null && account.limit > 0;
+  const hasCommitted = account.committed > 0;
+
+  // Disponível real = saldo - comprometido (pode ser negativo se comprometido > saldo)
   const available = account.currentBalance - account.committed;
+
+  // Percentual usado do limite (baseado no saldo atual)
+  const usedPct = hasLimit
+    ? Math.min(100, Math.max(0, (account.currentBalance / account.limit!) * 100))
+    : null;
 
   return (
     <div
@@ -47,7 +53,7 @@ function AccountCard({ account }: { account: AccountWithCommitted }) {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs font-medium opacity-70 uppercase tracking-wider">
+          <p className="text-[10px] font-medium opacity-70 uppercase tracking-wider">
             {ACCOUNT_TYPE_LABELS[account.type as keyof typeof ACCOUNT_TYPE_LABELS] ?? account.type}
           </p>
           <p className="font-semibold text-sm mt-0.5">{account.name}</p>
@@ -55,7 +61,7 @@ function AccountCard({ account }: { account: AccountWithCommitted }) {
         <BankBadge abbrev={bank.abbrev} accent={bank.accent} text={bank.text} />
       </div>
 
-      {/* Balance */}
+      {/* Balance — sempre exibido */}
       <div>
         <p className="text-[10px] opacity-60 uppercase tracking-wider mb-0.5">Saldo</p>
         <p className="text-2xl font-bold tabular-nums leading-none">
@@ -63,21 +69,41 @@ function AccountCard({ account }: { account: AccountWithCommitted }) {
         </p>
       </div>
 
-      {/* Committed / Available */}
-      <div className="border-t border-white/20 pt-3 grid grid-cols-2 gap-2">
-        <div>
-          <p className="text-[10px] opacity-60 uppercase tracking-wider">Comprometido</p>
-          <p className="text-sm font-semibold tabular-nums opacity-90">
-            {formatBRL(account.committed)}
-          </p>
+      {/* Barra de limite (quando tem limite) */}
+      {hasLimit && (
+        <div className="space-y-1.5">
+          <div className="h-1.5 rounded-full bg-white/20 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-white/70"
+              style={{ width: `${usedPct}%` }}
+            />
+          </div>
+          <div className="flex justify-between text-[10px] opacity-70">
+            <span>Limite: {formatBRL(account.limit!)}</span>
+            <span>{Math.round(usedPct ?? 0)}% utilizado</span>
+          </div>
         </div>
-        <div>
-          <p className="text-[10px] opacity-60 uppercase tracking-wider">Livre</p>
-          <p className={`text-sm font-semibold tabular-nums ${available < 0 ? "text-red-300" : "opacity-90"}`}>
-            {formatBRL(available)}
-          </p>
+      )}
+
+      {/* Rodapé: só mostra quando há comprometido */}
+      {(hasCommitted || hasLimit) && (
+        <div className="border-t border-white/20 pt-2.5 grid grid-cols-2 gap-2">
+          {hasCommitted && (
+            <div>
+              <p className="text-[10px] opacity-60 uppercase tracking-wider">A sair</p>
+              <p className="text-sm font-semibold tabular-nums opacity-90">
+                {formatBRL(account.committed)}
+              </p>
+            </div>
+          )}
+          <div className={hasCommitted ? "" : "col-span-2"}>
+            <p className="text-[10px] opacity-60 uppercase tracking-wider">Disponível</p>
+            <p className={`text-sm font-semibold tabular-nums ${available < 0 ? "text-red-300" : "opacity-90"}`}>
+              {formatBRL(available)}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -87,7 +113,9 @@ function AccountCard({ account }: { account: AccountWithCommitted }) {
 function CreditCardCard({ card }: { card: CreditCard }) {
   const bank = getBankConfig(card.institution);
   const available = card.creditLimit != null ? card.creditLimit - card.currentBill : null;
-  const usedPct = card.creditLimit ? Math.min(100, (card.currentBill / card.creditLimit) * 100) : null;
+  const usedPct = card.creditLimit
+    ? Math.min(100, (card.currentBill / card.creditLimit) * 100)
+    : null;
 
   return (
     <div
@@ -97,13 +125,13 @@ function CreditCardCard({ card }: { card: CreditCard }) {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs font-medium opacity-70 uppercase tracking-wider">Cartão de crédito</p>
+          <p className="text-[10px] font-medium opacity-70 uppercase tracking-wider">Cartão de crédito</p>
           <p className="font-semibold text-sm mt-0.5">{card.name}</p>
         </div>
         <BankBadge abbrev={bank.abbrev} accent={bank.accent} text={bank.text} />
       </div>
 
-      {/* Bill */}
+      {/* Fatura */}
       <div>
         <p className="text-[10px] opacity-60 uppercase tracking-wider mb-0.5">Fatura atual</p>
         <p className="text-2xl font-bold tabular-nums leading-none">
@@ -111,36 +139,34 @@ function CreditCardCard({ card }: { card: CreditCard }) {
         </p>
       </div>
 
-      {/* Limit bar + breakdown */}
-      <div className="border-t border-white/20 pt-3 space-y-2">
-        {card.creditLimit != null && usedPct != null && (
-          <>
-            <div className="h-1.5 rounded-full bg-white/20 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-white/70 transition-all"
-                style={{ width: `${usedPct}%` }}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <p className="text-[10px] opacity-60 uppercase tracking-wider">Limite total</p>
-                <p className="text-sm font-semibold tabular-nums opacity-90">
-                  {formatBRL(card.creditLimit)}
-                </p>
-              </div>
-              <div>
-                <p className="text-[10px] opacity-60 uppercase tracking-wider">Disponível</p>
-                <p className="text-sm font-semibold tabular-nums opacity-90">
-                  {formatBRL(available ?? 0)}
-                </p>
-              </div>
-            </div>
-          </>
-        )}
-        <p className="text-[10px] opacity-50">
-          Vence dia {card.dueDay}{card.closingDay ? ` · Fecha dia ${card.closingDay}` : ""}
-        </p>
-      </div>
+      {/* Barra de uso + breakdown */}
+      {card.creditLimit != null && (
+        <div className="space-y-1.5">
+          <div className="h-1.5 rounded-full bg-white/20 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-white/70"
+              style={{ width: `${usedPct}%` }}
+            />
+          </div>
+          <div className="flex justify-between text-[10px] opacity-70">
+            <span>Limite: {formatBRL(card.creditLimit)}</span>
+            <span>{Math.round(usedPct ?? 0)}% utilizado</span>
+          </div>
+        </div>
+      )}
+
+      {card.creditLimit != null && (
+        <div className="border-t border-white/20 pt-2.5">
+          <p className="text-[10px] opacity-60 uppercase tracking-wider">Disponível</p>
+          <p className="text-sm font-semibold tabular-nums opacity-90">
+            {formatBRL(available ?? 0)}
+          </p>
+        </div>
+      )}
+
+      <p className="text-[10px] opacity-50 -mt-1">
+        Vence dia {card.dueDay}{card.closingDay ? ` · Fecha dia ${card.closingDay}` : ""}
+      </p>
     </div>
   );
 }
