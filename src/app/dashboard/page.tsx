@@ -12,6 +12,7 @@ import { CategoryChart } from "@/components/dashboard/category-chart";
 import { BreakdownBar } from "@/components/dashboard/breakdown-bar";
 import { MonthSelector } from "@/components/dashboard/month-selector";
 import { calcNetWorth, calcFreeMoney, calcMonthForecast } from "@/lib/calculations/financial";
+import { transactionVisibilityWhere, accountVisibilityWhere } from "@/lib/visibility";
 
 function formatBRL(v: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -44,8 +45,9 @@ function prevMonth(month: string) {
 }
 
 async function getFinancialSnapshot(userId: string) {
+  const accWhere = await accountVisibilityWhere(userId);
   const [accounts, recurrings] = await Promise.all([
-    prisma.account.findMany({ where: { userId } }),
+    prisma.account.findMany({ where: accWhere }),
     prisma.recurringTransaction.findMany({ where: { userId } }),
   ]);
 
@@ -57,44 +59,43 @@ async function getFinancialSnapshot(userId: string) {
   return { netWorth, freeMoney, forecast, hasAccounts };
 }
 
-async function getSpendingData(selectedMonth: string) {
+async function getSpendingData(selectedMonth: string, userId: string) {
   const previousMonth = prevMonth(selectedMonth);
   const months = last6MonthsFrom(selectedMonth);
+  const vis = await transactionVisibilityWhere(userId);
 
   const [selectedTxs, prevTxs, monthlyRaw, categoryRaw, bankRaw, holderRaw] =
     await Promise.all([
       prisma.transaction.findMany({
-        where: { invoiceMonth: selectedMonth, amount: { gt: 0 }, currency: "BRL" },
+        where: { AND: [vis, { invoiceMonth: selectedMonth, amount: { gt: 0 }, currency: "BRL" }] },
         select: { amount: true },
       }),
       prisma.transaction.findMany({
-        where: { invoiceMonth: previousMonth, amount: { gt: 0 }, currency: "BRL" },
+        where: { AND: [vis, { invoiceMonth: previousMonth, amount: { gt: 0 }, currency: "BRL" }] },
         select: { amount: true },
       }),
       prisma.transaction.groupBy({
         by: ["invoiceMonth"],
         where: {
-          invoiceMonth: { in: months.map((m) => m.month) },
-          amount: { gt: 0 },
-          currency: "BRL",
+          AND: [vis, { invoiceMonth: { in: months.map((m) => m.month) }, amount: { gt: 0 }, currency: "BRL" }],
         },
         _sum: { amount: true },
       }),
       prisma.transaction.groupBy({
         by: ["category"],
-        where: { invoiceMonth: selectedMonth, amount: { gt: 0 }, currency: "BRL" },
+        where: { AND: [vis, { invoiceMonth: selectedMonth, amount: { gt: 0 }, currency: "BRL" }] },
         _sum: { amount: true },
         orderBy: { _sum: { amount: "desc" } },
       }),
       prisma.transaction.groupBy({
         by: ["cardBrand"],
-        where: { invoiceMonth: selectedMonth, amount: { gt: 0 }, currency: "BRL" },
+        where: { AND: [vis, { invoiceMonth: selectedMonth, amount: { gt: 0 }, currency: "BRL" }] },
         _sum: { amount: true },
         orderBy: { _sum: { amount: "desc" } },
       }),
       prisma.transaction.groupBy({
         by: ["cardHolder"],
-        where: { invoiceMonth: selectedMonth, amount: { gt: 0 }, currency: "BRL" },
+        where: { AND: [vis, { invoiceMonth: selectedMonth, amount: { gt: 0 }, currency: "BRL" }] },
         _sum: { amount: true },
         orderBy: { _sum: { amount: "desc" } },
       }),
@@ -144,7 +145,7 @@ export default async function DashboardPage({ searchParams }: Props) {
 
   const [snapshot, spending] = await Promise.all([
     getFinancialSnapshot(session.user.id),
-    getSpendingData(selectedMonth),
+    getSpendingData(selectedMonth, session.user.id),
   ]);
 
   const selectedMonthLabel = (() => {

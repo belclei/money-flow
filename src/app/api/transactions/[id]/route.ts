@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
+import { transactionVisibilityWhere } from "@/lib/visibility";
 
 const PatchSchema = z.object({
   description: z.string().min(1).max(500).optional(),
@@ -18,31 +19,28 @@ interface Params {
   params: Promise<{ id: string }>;
 }
 
+async function canAccess(transactionId: string, userId: string) {
+  const where = await transactionVisibilityWhere(userId);
+  const tx = await prisma.transaction.findFirst({ where: { AND: [{ id: transactionId }, where] } });
+  return tx;
+}
+
 export async function PATCH(req: NextRequest, { params }: Params) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
+  const existing = await canAccess(id, session.user.id);
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
   const body = await req.json();
   const parsed = PatchSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
-  }
+  if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
 
-  const data = {
-    ...parsed.data,
-    ...(parsed.data.date && { date: new Date(parsed.data.date) }),
-  };
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { date: _d, ...rest } = data;
-  const updateData = {
-    ...rest,
-    ...(parsed.data.date && { date: new Date(parsed.data.date) }),
-  };
-
+  const { date: rawDate, ...rest } = parsed.data;
   const transaction = await prisma.transaction.update({
     where: { id },
-    data: updateData,
+    data: { ...rest, ...(rawDate && { date: new Date(rawDate) }) },
   });
 
   return NextResponse.json(transaction);
@@ -55,6 +53,9 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   }
 
   const { id } = await params;
+  const existing = await canAccess(id, session.user.id);
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
   await prisma.transaction.delete({ where: { id } });
   return NextResponse.json({ status: "ok" });
 }

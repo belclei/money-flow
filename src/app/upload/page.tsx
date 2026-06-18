@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,9 +11,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ReviewTable, type ReviewTransaction } from "@/components/upload/review-table";
 
-type Meta = { filename: string; cardBrand?: string; cardHolder?: string; month: string; detectedCardBrand?: string };
+type Account = { id: string; name: string; institution: string | null; type: string };
+type Meta = {
+  filename: string;
+  cardBrand?: string;
+  cardHolder?: string;
+  month: string;
+  detectedCardBrand?: string;
+  contentHash?: string;
+  accountId?: string;
+};
 
 type UploadState =
   | { status: "idle" }
@@ -22,23 +38,32 @@ type UploadState =
   | { status: "duplicate_ask"; file: File; invoiceId: string; filename: string; uploadedAt: string }
   | { status: "review"; transactions: ReviewTransaction[]; meta: Meta }
   | { status: "confirming" }
+  | { status: "link_portadores"; unknownNames: string[]; count: number }
   | { status: "success"; count: number }
   | { status: "error"; message: string };
-
-async function uploadFile(file: File, password?: string) {
-  const fd = new FormData();
-  fd.append("file", file);
-  if (password) fd.append("password", password);
-  return fetch("/api/upload", { method: "POST", body: fd });
-}
 
 export default function UploadPage() {
   const [state, setState] = useState<UploadState>({ status: "idle" });
   const [dragging, setDragging] = useState(false);
   const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [replacingFile, setReplacingFile] = useState<File | null>(null);
+  const [accountId, setAccountId] = useState("");
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch("/api/accounts")
+      .then((r) => r.json())
+      .then((d) => setAccounts(d.accounts ?? []));
+  }, []);
+
+  const uploadFile = useCallback(async (file: File, pwd?: string) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    if (pwd) fd.append("password", pwd);
+    if (accountId) fd.append("accountId", accountId);
+    return fetch("/api/upload", { method: "POST", body: fd });
+  }, [accountId]);
 
   const handleFile = useCallback(async (file: File) => {
     if (!file.name.toLowerCase().endsWith(".pdf")) {
@@ -56,43 +81,28 @@ export default function UploadPage() {
     }
 
     if (data.status === "duplicate_ask") {
-      setState({
-        status: "duplicate_ask",
-        file,
-        invoiceId: data.invoiceId,
-        filename: data.filename,
-        uploadedAt: data.uploadedAt,
-      });
+      setState({ status: "duplicate_ask", file, invoiceId: data.invoiceId, filename: data.filename, uploadedAt: data.uploadedAt });
     } else if (data.status === "password_required") {
       setState({ status: "password_required", file });
     } else if (data.status === "preview") {
-      setState({ status: "review", transactions: data.transactions, meta: data.meta });
+      setState({ status: "review", transactions: data.transactions, meta: { ...data.meta, accountId: accountId || undefined } });
     } else {
       setState({ status: "error", message: data.error ?? "Erro desconhecido." });
     }
-  }, []);
+  }, [uploadFile, accountId]);
 
   const handleReplace = useCallback(async () => {
     if (state.status !== "duplicate_ask") return;
-
-    // Delete old invoice
-    const deleteRes = await fetch(`/api/upload/replace?invoiceId=${state.invoiceId}`, {
-      method: "DELETE",
-    });
-
+    const deleteRes = await fetch(`/api/upload/replace?invoiceId=${state.invoiceId}`, { method: "DELETE" });
     if (!deleteRes.ok) {
       setState({ status: "error", message: "Falha ao deletar fatura anterior." });
       return;
     }
-
-    // Reprocess the new file
-    setReplacingFile(null);
     await handleFile(state.file);
   }, [state, handleFile]);
 
   const handleKeepExisting = useCallback(() => {
     setState({ status: "idle" });
-    setReplacingFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }, []);
 
@@ -112,23 +122,17 @@ export default function UploadPage() {
         return;
       }
       if (data.status === "duplicate_ask") {
-        setState({
-          status: "duplicate_ask",
-          file: state.file,
-          invoiceId: data.invoiceId,
-          filename: data.filename,
-          uploadedAt: data.uploadedAt,
-        });
+        setState({ status: "duplicate_ask", file: state.file, invoiceId: data.invoiceId, filename: data.filename, uploadedAt: data.uploadedAt });
         return;
       }
       if (data.status === "preview") {
         setPassword("");
-        setState({ status: "review", transactions: data.transactions, meta: data.meta });
+        setState({ status: "review", transactions: data.transactions, meta: { ...data.meta, accountId: accountId || undefined } });
       } else {
         setState({ status: "error", message: data.error ?? "Falha no upload." });
       }
     },
-    [state, password]
+    [state, password, uploadFile, accountId]
   );
 
   const handleConfirm = useCallback(
@@ -144,7 +148,12 @@ export default function UploadPage() {
       const data = await res.json().catch(() => ({}));
 
       if (data.status === "ok") {
-        setState({ status: "success", count: data.invoice?.transactions?.length ?? 0 });
+        const count = data.invoice?.transactions?.length ?? 0;
+        if (data.unknownCardHolders?.length > 0) {
+          setState({ status: "link_portadores", unknownNames: data.unknownCardHolders, count });
+        } else {
+          setState({ status: "success", count });
+        }
       } else {
         setState({ status: "error", message: data.error ?? "Falha ao salvar." });
       }
@@ -156,7 +165,6 @@ export default function UploadPage() {
     setState({ status: "idle" });
     setPassword("");
     setPasswordError(null);
-    setReplacingFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -180,9 +188,40 @@ export default function UploadPage() {
     );
   }
 
+  // Link portadores screen
+  if (state.status === "link_portadores") {
+    return (
+      <LinkPortadoresScreen
+        names={state.unknownNames}
+        count={state.count}
+        onDone={reset}
+      />
+    );
+  }
+
   return (
     <main className="container mx-auto max-w-2xl p-6 space-y-6">
       <h1 className="text-2xl font-semibold">Importar fatura</h1>
+
+      {/* Account selector */}
+      {accounts.length > 0 && (
+        <div className="space-y-2">
+          <Label>Conta / Cartão</Label>
+          <Select value={accountId || "none"} onValueChange={(v) => setAccountId(v === "none" ? "" : (v ?? ""))}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecionar conta (opcional)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">— Sem conta associada —</SelectItem>
+              {accounts.map((a) => (
+                <SelectItem key={a.id} value={a.id}>
+                  {a.name}{a.institution ? ` — ${a.institution}` : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
@@ -232,24 +271,13 @@ export default function UploadPage() {
         </div>
       )}
 
-      <Dialog
-        open={state.status === "password_required"}
-        onOpenChange={(open) => { if (!open) reset(); }}
-      >
+      <Dialog open={state.status === "password_required"} onOpenChange={(open) => { if (!open) reset(); }}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>PDF protegido por senha</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>PDF protegido por senha</DialogTitle></DialogHeader>
           <form onSubmit={handlePasswordSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="pdf-password">Senha</Label>
-              <Input
-                id="pdf-password"
-                type="password"
-                autoFocus
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              <Input id="pdf-password" type="password" autoFocus value={password} onChange={(e) => setPassword(e.target.value)} />
             </div>
             {passwordError && <p className="text-sm text-red-500">{passwordError}</p>}
             <div className="flex gap-2">
@@ -260,14 +288,9 @@ export default function UploadPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={state.status === "duplicate_ask"}
-        onOpenChange={(open) => { if (!open) handleKeepExisting(); }}
-      >
+      <Dialog open={state.status === "duplicate_ask"} onOpenChange={(open) => { if (!open) handleKeepExisting(); }}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Fatura já importada</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Fatura já importada</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
               <p className="text-sm text-muted-foreground mb-2">Esta fatura já foi importada anteriormente:</p>
@@ -280,16 +303,111 @@ export default function UploadPage() {
             </div>
             <p className="text-sm">Deseja substituir os dados anteriores por uma nova extração?</p>
             <div className="flex gap-2">
-              <Button variant="destructive" onClick={handleReplace}>
-                Sim, substituir
-              </Button>
-              <Button variant="outline" onClick={handleKeepExisting}>
-                Não, manter dados existentes
-              </Button>
+              <Button variant="destructive" onClick={handleReplace}>Sim, substituir</Button>
+              <Button variant="outline" onClick={handleKeepExisting}>Não, manter dados existentes</Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
+    </main>
+  );
+}
+
+// ─── Link portadores screen ───────────────────────────────────────────────────
+
+function LinkPortadoresScreen({
+  names,
+  count,
+  onDone,
+}: {
+  names: string[];
+  count: number;
+  onDone: () => void;
+}) {
+  const [users, setUsers] = useState<{ id: string; email: string }[]>([]);
+  const [selections, setSelections] = useState<Record<string, string>>({});
+  const [saved, setSaved] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/users")
+      .then((r) => r.json())
+      .then((d) => setUsers(d.users ?? []));
+  }, []);
+
+  async function handleLink(name: string) {
+    const userId = selections[name];
+    if (!userId) return;
+    setLoading(name);
+    const res = await fetch("/api/portadores", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, granteeUserId: userId }),
+    });
+    if (res.ok) setSaved((prev) => new Set([...prev, name]));
+    setLoading(null);
+  }
+
+  const remaining = names.filter((n) => !saved.has(n));
+
+  return (
+    <main className="container mx-auto max-w-xl p-6 space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold">Portadores identificados</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          {count} transaç{count !== 1 ? "ões importadas" : "ão importada"} com sucesso.
+          {remaining.length > 0
+            ? " Encontramos portadores ainda não mapeados a usuários do sistema."
+            : " Todos os portadores foram mapeados."}
+        </p>
+      </div>
+
+      {remaining.length > 0 ? (
+        <div className="space-y-4">
+          {remaining.map((name) => (
+            <div key={name} className="rounded-lg border p-4 space-y-3">
+              <p className="font-medium text-sm">{name}</p>
+              <div className="flex gap-2">
+                <Select
+                  value={selections[name] ?? ""}
+                  onValueChange={(v) => setSelections((prev) => ({ ...prev, [name]: v ?? "" }))}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Selecionar usuário" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>{u.email}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  size="sm"
+                  onClick={() => handleLink(name)}
+                  disabled={!selections[name] || loading === name}
+                >
+                  {loading === name ? "…" : "Vincular"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setSaved((prev) => new Set([...prev, name]))}
+                >
+                  Pular
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+          <p className="text-sm text-green-800">Todos os portadores foram tratados.</p>
+        </div>
+      )}
+
+      <Button onClick={onDone} variant={remaining.length > 0 ? "outline" : "default"}>
+        {remaining.length > 0 ? "Concluir sem vincular restantes" : "Concluir"}
+      </Button>
     </main>
   );
 }

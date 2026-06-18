@@ -9,10 +9,13 @@ const PUBLIC_PREFIXES = [
   "/_next",
 ];
 
+const PUBLIC_EXACT = ["/"];
+
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Always allow public routes
+  if (PUBLIC_EXACT.includes(pathname)) return NextResponse.next();
   if (PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
     return NextResponse.next();
   }

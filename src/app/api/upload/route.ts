@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
   const password = (formData.get("password") as string | null) ?? undefined;
   const cardHolder = (formData.get("cardHolder") as string | null) ?? undefined;
   const month = (formData.get("month") as string | null) ?? "";
+  const accountId = (formData.get("accountId") as string | null) ?? undefined;
 
   if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 });
   if (file.type !== "application/pdf")
@@ -94,6 +95,6 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     status: "preview",
     transactions: parsed.data,
-    meta: { filename: file.name, cardBrand, cardHolder, month, detectedCardBrand, contentHash },
+    meta: { filename: file.name, cardBrand, cardHolder, month, detectedCardBrand, contentHash, accountId },
   });
 }

@@ -8,11 +8,14 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  role         String   @default("viewer")
-  createdAt    DateTime @default(now())
+  id                     String          @id @default(cuid())
+  email                  String          @unique
+  name                   String?
+  passwordHash           String
+  role                   String          @default("viewer")
+  createdAt              DateTime        @default(now())
+  accountAccesses        AccountAccess[] @relation("AccountAccessGrantee")
+  portadorAliasesGranted PortadorAlias[] @relation("PortadorAliasGrantee")
 }
 
 model Invite {
@@ -27,6 +30,9 @@ model Invite {
 
 model Invoice {
   id           String        @id @default(cuid())
+  userId       String?       // owner — quem importou
+  accountId    String?       // qual conta este extrato pertence
+  account      Account?      @relation(fields: [accountId], references: [id])
   filename     String
   contentHash  String?       @unique
   cardBrand    String?
@@ -35,10 +41,14 @@ model Invoice {
   uploadedAt   DateTime      @default(now())
   status       String
   transactions Transaction[]
+
+  @@index([userId])
+  @@index([accountId])
 }
 
 model Purchase {
   id               String        @id @default(cuid())
+  userId           String?
   description      String
   purchaseKey      String        @unique
   totalAmount      Float?
@@ -48,6 +58,7 @@ model Purchase {
   transactions     Transaction[]
   createdAt        DateTime      @default(now())
 
+  @@index([userId])
   @@index([cardHolder])
 }
 
@@ -77,8 +88,35 @@ model Account {
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   recurringTransactions RecurringTransaction[]
+  invoices              Invoice[]
+  accesses              AccountAccess[]
 
   @@index([userId])
+}
+
+model AccountAccess {
+  id         String   @id @default(cuid())
+  accountId  String
+  account    Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  granteeId  String
+  grantee    User     @relation("AccountAccessGrantee", fields: [granteeId], references: [id], onDelete: Cascade)
+  permission String   // "view" | "edit"
+  createdAt  DateTime @default(now())
+
+  @@unique([accountId, granteeId])
+  @@index([granteeId])
+}
+
+model PortadorAlias {
+  id            String   @id @default(cuid())
+  ownerUserId   String   // owner da conta que criou o mapeamento
+  granteeUserId String   // usuário a quem este nome pertence
+  grantee       User     @relation("PortadorAliasGrantee", fields: [granteeUserId], references: [id], onDelete: Cascade)
+  name          String   // string exata do cardHolder no PDF
+  createdAt     DateTime @default(now())
+
+  @@unique([ownerUserId, name])
+  @@index([granteeUserId])
 }
 
 model RecurringTransaction {
@@ -103,6 +141,7 @@ model RecurringTransaction {
 
 model Transaction {
   id                String    @id @default(cuid())
+  userId            String?
   date              DateTime
   description       String
   amount            Float
@@ -121,6 +160,7 @@ model Transaction {
   purchase          Purchase? @relation(fields: [purchaseId], references: [id])
   createdAt         DateTime  @default(now())
 
+  @@index([userId])
   @@index([date])
   @@index([category])
   @@index([invoiceMonth])
