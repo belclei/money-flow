@@ -10,17 +10,28 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
+  // Superadmin — único que pode enviar convites
+  const superadminPassword = process.env.SUPERADMIN_PASSWORD ?? "changeme123";
+  await prisma.user.upsert({
+    where: { email: "belclei@gmail.com" },
+    update: {},
+    create: {
+      email: "belclei@gmail.com",
+      passwordHash: await bcrypt.hash(superadminPassword, 12),
+      role: "admin",
+    },
+  });
+  console.log("Superadmin ready: belclei@gmail.com");
+
+  // Configurable dev admin
   const email = process.env.SEED_ADMIN_EMAIL ?? "admin@example.com";
   const password = process.env.SEED_ADMIN_PASSWORD ?? "changeme123";
-
   const passwordHash = await bcrypt.hash(password, 12);
-
   await prisma.user.upsert({
     where: { email },
     update: {},
     create: { email, passwordHash, role: "admin" },
   });
-
   console.log(`Admin user ready: ${email}`);
 
   for (const cat of DEFAULT_CATEGORIES) {

@@ -75,9 +75,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ status: "ok" }, { status: 201 });
   }
 
-  // Default: create an invite (admin only)
+  // Default: create an invite (superadmin only)
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "admin") {
+  if (!session || session.user.email !== "belclei@gmail.com") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
