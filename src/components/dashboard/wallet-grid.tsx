@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { getBankConfig, getBankLogoUrls } from "@/lib/banks";
 import { ACCOUNT_TYPE_LABELS } from "@/lib/validators/account";
 import type { Account, CreditCard } from "@/generated/prisma/client";
@@ -77,8 +78,9 @@ function AccountCard({ account }: { account: AccountWithCommitted }) {
     : null;
 
   return (
-    <div
-      className="relative overflow-hidden rounded-2xl p-5 flex flex-col gap-3 shadow-md"
+    <Link
+      href={`/transactions?accountId=${account.id}`}
+      className="relative overflow-hidden rounded-2xl p-5 flex flex-col gap-3 shadow-md cursor-pointer transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
       style={{ background: `linear-gradient(135deg, ${bank.bg} 0%, ${bank.accent} 100%)`, color: bank.text }}
     >
       {/* Header with logo */}
@@ -135,7 +137,7 @@ function AccountCard({ account }: { account: AccountWithCommitted }) {
           </div>
         </div>
       )}
-    </div>
+    </Link>
   );
 }
 
@@ -149,8 +151,9 @@ function CreditCardCard({ card }: { card: CreditCard }) {
     : null;
 
   return (
-    <div
-      className="relative overflow-hidden rounded-2xl p-5 flex flex-col gap-3 shadow-md"
+    <Link
+      href={`/transactions?creditCardId=${card.id}`}
+      className="relative overflow-hidden rounded-2xl p-5 flex flex-col gap-3 shadow-md cursor-pointer transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
       style={{ background: `linear-gradient(135deg, ${bank.bg} 0%, ${bank.accent} 100%)`, color: bank.text }}
     >
       {/* Header with logo */}
@@ -198,7 +201,7 @@ function CreditCardCard({ card }: { card: CreditCard }) {
       <p className="text-[10px] opacity-50 -mt-1">
         Vence dia {card.dueDay}{card.closingDay ? ` · Fecha dia ${card.closingDay}` : ""}
       </p>
-    </div>
+    </Link>
   );
 }
 

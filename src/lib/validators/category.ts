@@ -15,6 +15,23 @@ export const CategorySchema = z.object({
 
 export const PatchCategorySchema = CategorySchema.partial();
 
+export const LEGACY_CATEGORY_LABELS: Record<string, string> = {
+  food: "Alimentação",
+  transport: "Transporte",
+  shopping: "Compras",
+  health: "Saúde",
+  entertainment: "Lazer",
+  utilities: "Serviços",
+  other: "Outros",
+  transfer: "Transferência",
+  income: "Receita",
+  expense: "Despesa",
+};
+
+export function categoryLabel(raw: string): string {
+  return LEGACY_CATEGORY_LABELS[raw] ?? raw;
+}
+
 export const DEFAULT_CATEGORIES: Array<{ name: string; kind: CategoryKind }> = [
   { name: "Alimentação", kind: "expense" },
   { name: "Transporte", kind: "expense" },

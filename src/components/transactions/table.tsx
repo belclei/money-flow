@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { RowActions } from "./row-actions";
+import { categoryLabel } from "@/lib/validators/category";
 
 type Purchase = {
   id: string;
@@ -146,7 +147,7 @@ export function TransactionTable({
                     <TableCell>
                       {t.category && (
                         <Badge variant="secondary" className="text-xs">
-                          {t.category}
+                          {categoryLabel(t.category)}
                         </Badge>
                       )}
                     </TableCell>

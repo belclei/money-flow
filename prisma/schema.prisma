@@ -123,6 +123,7 @@ model Account {
   recurringTransactions RecurringTransaction[]
   creditCards           CreditCard[]           @relation("CreditCardDebitAccount")
   accesses              AccountAccess[]
+  transactions          Transaction[]
 
   @@index([userId])
 }
@@ -186,6 +187,8 @@ model Transaction {
   cardHolder        String?
   invoiceId         String?
   invoice           Invoice?   @relation(fields: [invoiceId], references: [id])
+  accountId         String?
+  account           Account?   @relation(fields: [accountId], references: [id])
   source            String
   invoiceMonth      String?
   installmentNumber Int?
@@ -201,4 +204,5 @@ model Transaction {
   @@index([currency])
   @@index([cardHolder])
   @@index([purchaseId])
+  @@index([accountId])
 }

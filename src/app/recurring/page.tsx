@@ -4,13 +4,22 @@ import { authOptions } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import { RecurringClient } from "@/components/recurring/recurring-client";
 
-export default async function RecurringPage() {
+interface Props {
+  searchParams: Promise<{ accountId?: string }>;
+}
+
+export default async function RecurringPage({ searchParams }: Props) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/auth/login");
 
+  const params = await searchParams;
+
   const [recurrings, accounts, categories] = await Promise.all([
     prisma.recurringTransaction.findMany({
-      where: { userId: session.user.id },
+      where: {
+        userId: session.user.id,
+        ...(params.accountId && { accountId: params.accountId }),
+      },
       include: { account: true, category: true },
       orderBy: [{ kind: "asc" }, { dayOfMonth: "asc" }],
     }),
@@ -24,12 +33,17 @@ export default async function RecurringPage() {
     }),
   ]);
 
+  const accountName = params.accountId
+    ? (accounts.find((a) => a.id === params.accountId)?.name ?? null)
+    : null;
+
   return (
     <main className="container mx-auto max-w-2xl p-6 space-y-6">
       <RecurringClient
         initialRecurrings={recurrings}
         accounts={accounts}
         categories={categories}
+        accountFilter={accountName}
       />
     </main>
   );
