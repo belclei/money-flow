@@ -1,103 +1,112 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
+import { randomBytes } from "crypto";
+import { type NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
 import {
-  InviteCreateSchema,
-  InviteAcceptSchema,
+	InviteAcceptSchema,
+	InviteCreateSchema,
 } from "@/lib/validators/transaction";
 
 export async function GET(req: NextRequest) {
-  const token = new URL(req.url).searchParams.get("token");
-  if (!token) {
-    return NextResponse.json({ error: "Token ausente" }, { status: 400 });
-  }
+	const token = new URL(req.url).searchParams.get("token");
+	if (!token) {
+		return NextResponse.json({ error: "Token ausente" }, { status: 400 });
+	}
 
-  const invite = await prisma.invite.findUnique({ where: { token } });
+	const invite = await prisma.invite.findUnique({ where: { token } });
 
-  if (!invite || invite.usedAt || invite.expiresAt < new Date()) {
-    return NextResponse.json({ valid: false });
-  }
+	if (!invite || invite.usedAt || invite.expiresAt < new Date()) {
+		return NextResponse.json({ valid: false });
+	}
 
-  return NextResponse.json({
-    valid: true,
-    email: invite.email,
-    role: invite.role,
-  });
+	return NextResponse.json({
+		valid: true,
+		email: invite.email,
+		role: invite.role,
+	});
 }
 
 export async function POST(req: NextRequest) {
-  const url = new URL(req.url);
-  const action = url.searchParams.get("action");
+	const url = new URL(req.url);
+	const action = url.searchParams.get("action");
 
-  if (action === "accept") {
-    const body = await req.json();
-    const parsed = InviteAcceptSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
-    }
+	if (action === "accept") {
+		const body = await req.json();
+		const parsed = InviteAcceptSchema.safeParse(body);
+		if (!parsed.success) {
+			return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
+		}
 
-    const invite = await prisma.invite.findUnique({
-      where: { token: parsed.data.token },
-    });
+		const invite = await prisma.invite.findUnique({
+			where: { token: parsed.data.token },
+		});
 
-    if (!invite || invite.usedAt || invite.expiresAt < new Date()) {
-      return NextResponse.json(
-        { error: "Convite inválido ou expirado" },
-        { status: 400 }
-      );
-    }
+		if (!invite || invite.usedAt || invite.expiresAt < new Date()) {
+			return NextResponse.json(
+				{ error: "Convite inválido ou expirado" },
+				{ status: 400 },
+			);
+		}
 
-    const existing = await prisma.user.findUnique({
-      where: { email: invite.email },
-    });
-    if (existing) {
-      return NextResponse.json(
-        { error: "Já existe uma conta com este e-mail" },
-        { status: 409 }
-      );
-    }
+		const existing = await prisma.user.findUnique({
+			where: { email: invite.email },
+		});
+		if (existing) {
+			return NextResponse.json(
+				{ error: "Já existe uma conta com este e-mail" },
+				{ status: 409 },
+			);
+		}
 
-    const passwordHash = await bcrypt.hash(parsed.data.password, 12);
+		const passwordHash = await bcrypt.hash(parsed.data.password, 12);
 
-    await prisma.$transaction([
-      prisma.user.create({
-        data: { email: invite.email, passwordHash, role: invite.role },
-      }),
-      prisma.invite.update({
-        where: { id: invite.id },
-        data: { usedAt: new Date() },
-      }),
-    ]);
+		await prisma.$transaction([
+			prisma.user.create({
+				data: {
+					email: invite.email,
+					passwordHash,
+					role: invite.role,
+					name: parsed.data.name,
+					nickname: parsed.data.nickname,
+				},
+			}),
+			prisma.invite.update({
+				where: { id: invite.id },
+				data: { usedAt: new Date() },
+			}),
+		]);
 
-    return NextResponse.json({ status: "ok" }, { status: 201 });
-  }
+		return NextResponse.json({ status: "ok" }, { status: 201 });
+	}
 
-  // Default: create an invite (superadmin only)
-  const session = await getServerSession(authOptions);
-  if (!session || session.user.email !== "belclei@gmail.com") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+	// Default: create an invite (superadmin only)
+	const session = await getServerSession(authOptions);
+	if (!session || session.user.email !== "belclei@gmail.com") {
+		return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+	}
 
-  const body = await req.json();
-  const parsed = InviteCreateSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
-  }
+	const body = await req.json();
+	const parsed = InviteCreateSchema.safeParse(body);
+	if (!parsed.success) {
+		return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
+	}
 
-  const token = randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+	const token = randomBytes(32).toString("hex");
+	const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-  const invite = await prisma.invite.create({
-    data: {
-      email: parsed.data.email,
-      token,
-      role: parsed.data.role,
-      expiresAt,
-    },
-  });
+	const invite = await prisma.invite.create({
+		data: {
+			email: parsed.data.email,
+			token,
+			role: parsed.data.role,
+			expiresAt,
+		},
+	});
 
-  return NextResponse.json({ token: invite.token, expiresAt: invite.expiresAt });
+	return NextResponse.json({
+		token: invite.token,
+		expiresAt: invite.expiresAt,
+	});
 }

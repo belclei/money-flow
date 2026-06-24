@@ -70,7 +70,8 @@ export async function POST(req: NextRequest) {
 
 	const { transactions, meta, replaceIds } = parsed.data;
 	const userId = session.user.id;
-	const ownerName = session.user.name ?? session.user.email ?? userId;
+	const ownerName =
+		session.user.nickname ?? session.user.name ?? session.user.email ?? userId;
 
 	// Delete transactions that were replaced by user decision in dedup step
 	if (replaceIds && replaceIds.length > 0) {
