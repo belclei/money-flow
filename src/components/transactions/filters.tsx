@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { categoryLabel } from "@/lib/validators/category";
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => {
   const date = new Date();
@@ -92,7 +93,7 @@ export function TransactionFilters() {
             <SelectItem value="all">Todas</SelectItem>
             {CATEGORIES.map((c) => (
               <SelectItem key={c} value={c}>
-                {c}
+                {categoryLabel(c)}
               </SelectItem>
             ))}
           </SelectContent>

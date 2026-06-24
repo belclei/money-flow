@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -316,10 +317,12 @@ export function RecurringClient({
   initialRecurrings,
   accounts,
   categories,
+  accountFilter,
 }: {
   initialRecurrings: RecurringWithRelations[];
   accounts: Account[];
   categories: Category[];
+  accountFilter?: string | null;
 }) {
   const router = useRouter();
   const [recurrings, setRecurrings] = useState(initialRecurrings);
@@ -371,7 +374,18 @@ export function RecurringClient({
     <>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Recorrências</h1>
+          {accountFilter ? (
+            <>
+              <div className="flex items-center gap-2 mb-1">
+                <Link href="/recurring" className="text-xs text-muted-foreground hover:text-foreground">
+                  ← Todas as recorrências
+                </Link>
+              </div>
+              <h1 className="text-2xl font-semibold">Recorrências — {accountFilter}</h1>
+            </>
+          ) : (
+            <h1 className="text-2xl font-semibold">Recorrências</h1>
+          )}
           <p className="text-sm text-muted-foreground mt-1">
             Receitas e despesas fixas mensais
           </p>

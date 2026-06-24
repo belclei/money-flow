@@ -40,6 +40,7 @@ const BANK_MAP: Record<string, BankConfig> = {
   "mercado pago":   { bg: "#00BCFF", text: "#0A0A0A", accent: "#0099E0", abbrev: "MP",   domain: "mercadopago.com.br" },
   will:             { bg: "#5533FF", text: "#FFFFFF", accent: "#7755FF", abbrev: "Will", domain: "willbank.com.br" },
   bs2:              { bg: "#0066CC", text: "#FFFFFF", accent: "#0080FF", abbrev: "BS2",  domain: "bs2.com.br" },
+  banrisul:         { bg: "#004B9D", text: "#FFFFFF", accent: "#F47920", abbrev: "BRS",  domain: "banrisul.com.br" },
 };
 
 const DEFAULT: BankConfig = { bg: "#18181B", text: "#FFFFFF", accent: "#3F3F46", abbrev: "—" };

@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { Upload } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/config";
@@ -88,7 +89,8 @@ export default async function CardDetailPage({ params, searchParams }: Props) {
           )}
         </div>
         <Link href={`/upload?cartao=${id}`} className={cn(buttonVariants({ size: "sm" }))}>
-          Importar fatura
+          <Upload className="w-4 h-4 mr-1.5" />
+          Importar transações
         </Link>
       </div>
 
@@ -147,7 +149,8 @@ export default async function CardDetailPage({ params, searchParams }: Props) {
           <div className="rounded-lg border border-dashed p-12 text-center">
             <p className="text-muted-foreground text-sm">Nenhuma transação neste mês.</p>
             <Link href={`/upload?cartao=${id}`} className={cn(buttonVariants({ variant: "outline", size: "sm" }), "mt-4 inline-flex")}>
-              Importar fatura
+              <Upload className="w-4 h-4 mr-1.5" />
+          Importar transações
             </Link>
           </div>
         ) : (

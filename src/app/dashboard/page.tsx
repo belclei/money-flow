@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { Upload } from "lucide-react";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth/config";
@@ -211,7 +212,8 @@ export default async function DashboardPage({ searchParams }: Props) {
             Recorrências
           </Link>
           <Link href="/upload" className={cn(buttonVariants({ size: "sm" }))}>
-            Importar fatura
+            <Upload className="w-4 h-4 mr-1.5" />
+            Importar transações
           </Link>
         </div>
       </div>
