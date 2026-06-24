@@ -11,7 +11,7 @@ const securityHeaders = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob:",
+      "img-src 'self' data: blob: https://icons.duckduckgo.com https://t1.gstatic.com",
       "font-src 'self'",
       "object-src 'none'",
       "base-uri 'self'",
