@@ -70,6 +70,7 @@ export async function POST(req: NextRequest) {
 
 	const { transactions, meta, replaceIds } = parsed.data;
 	const userId = session.user.id;
+	const ownerName = session.user.name ?? session.user.email ?? userId;
 
 	// Delete transactions that were replaced by user decision in dedup step
 	if (replaceIds && replaceIds.length > 0) {
@@ -105,6 +106,7 @@ export async function POST(req: NextRequest) {
 						category: t.category,
 						paymentMethod: "debit",
 						accountId,
+						cardHolder: t.cardHolder ?? ownerName,
 						source: "statement_import",
 					})),
 				},
@@ -150,7 +152,7 @@ export async function POST(req: NextRequest) {
 					category: t.category,
 					paymentMethod: "credit_card",
 					cardBrand: meta.cardBrand,
-					cardHolder: t.cardHolder ?? meta.cardHolder,
+					cardHolder: t.cardHolder ?? meta.cardHolder ?? ownerName,
 					source: "pdf_import",
 					invoiceMonth: meta.month,
 					installmentNumber: t.installmentNumber,
