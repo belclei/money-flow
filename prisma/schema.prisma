@@ -124,8 +124,25 @@ model Account {
   creditCards           CreditCard[]           @relation("CreditCardDebitAccount")
   accesses              AccountAccess[]
   transactions          Transaction[]
+  statements            AccountStatement[]
 
   @@index([userId])
+}
+
+model AccountStatement {
+  id           String        @id @default(cuid())
+  userId       String?
+  accountId    String
+  account      Account       @relation(fields: [accountId], references: [id])
+  filename     String
+  contentHash  String?       @unique
+  period       String?
+  uploadedAt   DateTime      @default(now())
+  status       String
+  transactions Transaction[]
+
+  @@index([userId])
+  @@index([accountId])
 }
 
 model AccountAccess {
@@ -174,27 +191,29 @@ model RecurringTransaction {
 }
 
 model Transaction {
-  id                String     @id @default(cuid())
+  id                String            @id @default(cuid())
   userId            String?
   date              DateTime
   description       String
   amount            Float
-  currency          String     @default("BRL")
+  currency          String            @default("BRL")
   amountBRL         Float?
   category          String?
   paymentMethod     String
   cardBrand         String?
   cardHolder        String?
   invoiceId         String?
-  invoice           Invoice?   @relation(fields: [invoiceId], references: [id])
+  invoice           Invoice?          @relation(fields: [invoiceId], references: [id])
   accountId         String?
-  account           Account?   @relation(fields: [accountId], references: [id])
+  account           Account?          @relation(fields: [accountId], references: [id])
+  statementId       String?
+  statement         AccountStatement? @relation(fields: [statementId], references: [id])
   source            String
   invoiceMonth      String?
   installmentNumber Int?
   purchaseId        String?
-  purchase          Purchase?  @relation(fields: [purchaseId], references: [id])
-  createdAt         DateTime   @default(now())
+  purchase          Purchase?         @relation(fields: [purchaseId], references: [id])
+  createdAt         DateTime          @default(now())
 
   @@index([userId])
   @@index([date])
@@ -205,4 +224,5 @@ model Transaction {
   @@index([cardHolder])
   @@index([purchaseId])
   @@index([accountId])
+  @@index([statementId])
 }

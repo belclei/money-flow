@@ -22,14 +22,37 @@ Rules:
 - Do not include any text outside the JSON array
 - Do not wrap in markdown code fences`;
 
+export const STATEMENT_EXTRACTION_SYSTEM_PROMPT = `You are a financial data extraction assistant.
+Extract all transactions from the bank account statement provided.
+The statement is formatted as markdown — use headings, tables, and lists to identify transaction lines accurately.
+
+Return a JSON array of objects with these exact fields:
+- date: ISO 8601 date string (YYYY-MM-DD)
+- description: full transaction description as shown (string)
+- amount: number — positive=money leaving the account (debit/saída), negative=money entering the account (credit/entrada)
+- currency: "BRL" by default; use other ISO codes only when clearly stated
+- amountBRL: number — BRL equivalent if currency != BRL; omit if currency is BRL
+- category: optional — infer from description (e.g. food, transport, shopping, health, entertainment, utilities, income, transfer, fees, other)
+
+Rules:
+- Include ALL movements: PIX, TED, DOC, withdrawals (saques), deposits (depósitos), fees (tarifas), interest (juros), transfers (transferências)
+- Ignore opening/closing balance lines and purely informational lines
+- Debits (saídas, débitos) → positive amount; credits (entradas, créditos) → negative amount
+- Do not include any text outside the JSON array
+- Do not wrap in markdown code fences`;
+
 export function buildExtractionPrompt(pdfText: string): string {
-  return `Extract all transactions from this invoice (markdown format):\n\n${pdfText}`;
+	return `Extract all transactions from this invoice (markdown format):\n\n${pdfText}`;
+}
+
+export function buildStatementExtractionPrompt(pdfText: string): string {
+	return `Extract all transactions from this bank account statement (markdown format):\n\n${pdfText}`;
 }
 
 export function cleanJsonResponse(raw: string): string {
-  return raw
-    .replace(/^```json\s*/i, "")
-    .replace(/^```\s*/i, "")
-    .replace(/```\s*$/i, "")
-    .trim();
+	return raw
+		.replace(/^```json\s*/i, "")
+		.replace(/^```\s*/i, "")
+		.replace(/```\s*$/i, "")
+		.trim();
 }
