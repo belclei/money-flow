@@ -1,5 +1,6 @@
 "use client";
 
+import { CreditCard, Landmark } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
 	DedupTable,
 	type DupAction,
@@ -29,7 +31,7 @@ import {
 	type ReviewTransaction,
 } from "@/components/upload/review-table";
 
-type CreditCard = { id: string; name: string; institution: string | null };
+type CreditCardItem = { id: string; name: string; institution: string | null };
 type Account = {
 	id: string;
 	name: string;
@@ -88,7 +90,7 @@ function UploadPageInner() {
 		searchParams.get("cartao") ?? "",
 	);
 	const [accountId, setAccountId] = useState(searchParams.get("conta") ?? "");
-	const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
+	const [creditCards, setCreditCards] = useState<CreditCardItem[]>([]);
 	const [accounts, setAccounts] = useState<Account[]>([]);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -417,32 +419,30 @@ function UploadPageInner() {
 		);
 	}
 
-	const pageTitle =
-		importType === "extrato" ? "Importar extrato" : "Importar fatura";
-
 	return (
 		<main className="container mx-auto max-w-2xl p-6 space-y-6">
-			<h1 className="text-2xl font-semibold">{pageTitle}</h1>
+			<h1 className="text-2xl font-semibold">Importar transações</h1>
 
 			{/* Type selector */}
 			<div className="space-y-2">
 				<Label>Tipo de documento</Label>
-				<div className="flex gap-2">
-					{(["fatura", "extrato"] as const).map((type) => (
-						<button
-							type="button"
-							key={type}
-							onClick={() => setImportType(type)}
-							className={`flex-1 rounded-lg border px-4 py-3 text-sm font-medium transition-colors ${
-								importType === type
-									? "border-primary bg-primary/5 text-primary"
-									: "border-muted-foreground/30 text-muted-foreground hover:border-primary/60"
-							}`}
-						>
-							{type === "fatura" ? "Fatura de cartão" : "Extrato de conta"}
-						</button>
-					))}
-				</div>
+				<ToggleGroup
+					value={[importType]}
+					onValueChange={(values) => {
+						const next = values[values.length - 1];
+						if (next === "fatura" || next === "extrato") setImportType(next);
+					}}
+					className="w-full"
+				>
+					<ToggleGroupItem value="fatura">
+						<CreditCard className="w-4 h-4" />
+						Fatura de cartão
+					</ToggleGroupItem>
+					<ToggleGroupItem value="extrato">
+						<Landmark className="w-4 h-4" />
+						Extrato de conta
+					</ToggleGroupItem>
+				</ToggleGroup>
 			</div>
 
 			{/* Card selector (for fatura) */}
@@ -455,7 +455,7 @@ function UploadPageInner() {
 							setCreditCardId(v === "none" ? "" : (v ?? ""))
 						}
 					>
-						<SelectTrigger>
+						<SelectTrigger className="w-full">
 							<SelectValue placeholder="Selecionar cartão (opcional)" />
 						</SelectTrigger>
 						<SelectContent>
@@ -488,7 +488,7 @@ function UploadPageInner() {
 						value={accountId || "none"}
 						onValueChange={(v) => setAccountId(v === "none" ? "" : (v ?? ""))}
 					>
-						<SelectTrigger>
+						<SelectTrigger className="w-full">
 							<SelectValue placeholder="Selecionar conta" />
 						</SelectTrigger>
 						<SelectContent>
