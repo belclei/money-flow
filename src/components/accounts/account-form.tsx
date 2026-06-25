@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import {
 	Select,
@@ -167,26 +168,22 @@ export function AccountForm({ account, onSave, onCancel }: Props) {
 			<div className="grid grid-cols-2 gap-3">
 				<div className="space-y-2">
 					<Label htmlFor="acc-balance">Saldo atual</Label>
-					<Input
+					<CurrencyInput
 						id="acc-balance"
-						type="number"
-						step="0.01"
 						required
 						placeholder="0,00"
 						value={form.currentBalance}
-						onChange={(e) => set("currentBalance", e.target.value)}
+						onChange={(v) => set("currentBalance", v)}
 					/>
 				</div>
 				{!isCash && (
 					<div className="space-y-2">
 						<Label htmlFor="acc-limit">Limite (opcional)</Label>
-						<Input
+						<CurrencyInput
 							id="acc-limit"
-							type="number"
-							step="0.01"
 							placeholder="Ex: 2.000,00"
 							value={form.limit}
-							onChange={(e) => set("limit", e.target.value)}
+							onChange={(v) => set("limit", v)}
 						/>
 					</div>
 				)}

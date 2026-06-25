@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -85,11 +86,11 @@ export function CreditCardForm({ card, accounts, onSave, onCancel }: Props) {
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
           <Label htmlFor="cc-limit">Limite (R$)</Label>
-          <Input id="cc-limit" type="number" step="0.01" placeholder="Ex: 10000" value={form.creditLimit} onChange={(e) => set("creditLimit", e.target.value)} />
+          <CurrencyInput id="cc-limit" placeholder="Ex: 10.000,00" value={form.creditLimit} onChange={(v) => set("creditLimit", v)} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="cc-bill">Fatura atual (R$)</Label>
-          <Input id="cc-bill" type="number" step="0.01" value={form.currentBill} onChange={(e) => set("currentBill", e.target.value)} />
+          <CurrencyInput id="cc-bill" value={form.currentBill} onChange={(v) => set("currentBill", v)} />
         </div>
       </div>
 
