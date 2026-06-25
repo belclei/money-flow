@@ -12,6 +12,7 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: "Money Flow",
   description: "Controle financeiro pessoal",
+  other: { "google": "notranslate" },
 };
 
 export default function RootLayout({

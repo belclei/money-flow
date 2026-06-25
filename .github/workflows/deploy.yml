@@ -13,6 +13,7 @@ jobs:
             username: ${{ secrets.SSH_USER }}
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             script: |
+              git config --global --add safe.directory /home/deploy/money-flow
               cd /home/deploy/money-flow
               git pull
               docker compose up -d --build
