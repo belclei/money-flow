@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import {
   Dialog,
   DialogContent,
@@ -92,7 +93,7 @@ export function RowActions({ transaction }: { transaction: Transaction }) {
               </div>
               <div className="space-y-1">
                 <label className="text-xs text-muted-foreground">Valor</label>
-                <Input type="number" step="0.01" value={form.amount} onChange={(e) => set("amount", e.target.value)} />
+                <CurrencyInput value={form.amount} onChange={(v) => set("amount", v)} />
               </div>
             </div>
             <div className="space-y-1">

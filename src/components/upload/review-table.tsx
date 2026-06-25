@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import {
   Table,
   TableBody,
@@ -134,11 +135,9 @@ export function ReviewTable({
                 <TableCell className="text-right">
                   <div className="flex flex-col items-end gap-1">
                     <div className="flex items-center gap-1">
-                      <Input
-                        type="number"
-                        step="0.01"
+                      <CurrencyInput
                         value={t.amount}
-                        onChange={(e) => update(i, "amount", parseFloat(e.target.value) || 0)}
+                        onChange={(v) => update(i, "amount", parseFloat(v) || 0)}
                         className="h-7 text-xs w-24 text-right"
                       />
                       <span className="text-xs text-muted-foreground w-8">{t.currency}</span>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -149,14 +150,12 @@ export default function NewTransactionPage() {
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-2 space-y-2">
                 <Label htmlFor="amount">Valor</Label>
-                <Input
+                <CurrencyInput
                   id="amount"
-                  type="number"
-                  step="0.01"
                   required
                   placeholder="0,00"
                   value={form.amount}
-                  onChange={(e) => set("amount", e.target.value)}
+                  onChange={(v) => set("amount", v)}
                 />
               </div>
               <div className="space-y-2">
@@ -178,13 +177,11 @@ export default function NewTransactionPage() {
             {form.currency !== "BRL" && (
               <div className="space-y-2">
                 <Label htmlFor="amountBRL">Valor cobrado em BRL</Label>
-                <Input
+                <CurrencyInput
                   id="amountBRL"
-                  type="number"
-                  step="0.01"
                   placeholder="Equivalente em reais"
                   value={form.amountBRL}
-                  onChange={(e) => set("amountBRL", e.target.value)}
+                  onChange={(v) => set("amountBRL", v)}
                 />
               </div>
             )}

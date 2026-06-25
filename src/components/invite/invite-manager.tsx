@@ -8,7 +8,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { EmailInput } from "@/components/ui/email-input";
 import { Label } from "@/components/ui/label";
 import {
 	Select,
@@ -123,9 +123,8 @@ export function InviteManager({
 				<form onSubmit={handleCreate} className="space-y-4">
 					<div className="space-y-2">
 						<Label htmlFor="invite-email">E-mail</Label>
-						<Input
+						<EmailInput
 							id="invite-email"
-							type="email"
 							required
 							placeholder="pessoa@exemplo.com"
 							value={email}

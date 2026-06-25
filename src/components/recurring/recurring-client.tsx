@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -166,15 +167,12 @@ function RecurringForm({
 
       <div className="space-y-2">
         <Label htmlFor="rec-amount">Valor (R$)</Label>
-        <Input
+        <CurrencyInput
           id="rec-amount"
-          type="number"
-          step="0.01"
-          min="0.01"
           required
           placeholder="0,00"
           value={form.amount}
-          onChange={(e) => set("amount", e.target.value)}
+          onChange={(v) => set("amount", v)}
         />
       </div>
 
